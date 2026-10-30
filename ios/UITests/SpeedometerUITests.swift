@@ -57,8 +57,8 @@ final class SpeedometerUITests: XCTestCase {
         shot(app, "128-landscape")
         XCUIDevice.shared.orientation = .portrait
 
-        // No new fix for longer than Speedometer.staleAfter
-        driving = nil: dashes, never a frozen number.
+        // No new fix for longer than Speedometer.staleAfter: dashes, never a frozen number.
+        driving = nil
         XCTAssertTrue(wait(30) { shows("FINDING GPS") }, "stale fix: \(texts(app))")
         shot(app, "finding-gps")
 
