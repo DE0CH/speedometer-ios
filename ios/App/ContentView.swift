@@ -17,12 +17,12 @@ struct ContentView: View {
                 Spacer(minLength: 0)
                 Text(number)
                     // Sized by the height, then shrunk to the width: two digits fill it edge to edge, three step down.
-                    .font(.system(size: geo.size.height * 0.62, weight: .black).width(.compressed))
+                    .font(.system(size: geo.size.height * (hasSpeed ? 0.62 : 0.2), weight: .black).width(.compressed))
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.1)
                     .foregroundStyle(ink.opacity(hasSpeed ? 1 : 0.25))
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: hasSpeed ? .infinity : nil, alignment: .leading)
                     .accessibilityIdentifier("speed")
                     .accessibilityLabel(number)
                 Rectangle().fill(ink).frame(height: 2).padding(.top, 14)
@@ -48,8 +48,8 @@ struct ContentView: View {
                 mph.toggle()
             }
         }
-        .accessibilityAddTraits(.isButton)
-        .accessibilityHint(meter.reading == .denied ? "Opens Settings" : "Switches between km/h and mph")
+        .accessibilityElement(children: .contain)
+        .accessibilityHint(meter.reading == .denied ? "Tap to open Settings" : "Tap to switch between km/h and mph")
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
     }

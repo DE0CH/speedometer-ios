@@ -15,7 +15,8 @@ final class SpeedometerUITests: XCTestCase {
         }
         app.launch()
         allowLocation()
-        let speed = app.staticTexts["speed"], unit = app.staticTexts["unit"], status = app.staticTexts["status"]
+        let speed = app.descendants(matching: .any)["speed"], unit = app.descendants(matching: .any)["unit"],
+            status = app.descendants(matching: .any)["status"]
         XCTAssertTrue(speed.waitForExistence(timeout: 10), "no speed on screen")
         shot(app, "launch")
         if unit.label == "MPH" { app.tap() }   // a previous run left mph on
@@ -61,8 +62,8 @@ final class SpeedometerUITests: XCTestCase {
         XCTAssertTrue(wait(5) { unit.label == "MPH" })
         app.terminate()
         app.launch()
-        XCTAssertTrue(app.staticTexts["unit"].waitForExistence(timeout: 10))
-        XCTAssertEqual(app.staticTexts["unit"].label, "MPH", "mph not remembered")
+        XCTAssertTrue(app.descendants(matching: .any)["unit"].waitForExistence(timeout: 10))
+        XCTAssertEqual(app.descendants(matching: .any)["unit"].label, "MPH", "mph not remembered")
     }
 
     /// A simulated GPS fix moving at `speed` m/s.
