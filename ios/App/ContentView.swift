@@ -102,7 +102,7 @@ private struct Number: View, Animatable {
             .font(Font(Archivo.number(size) as CTFont))
             .tracking(-0.02 * size)
             .fixedSize()
-            .alignmentGuide(.top) { $0[.firstTextBaseline] - Archivo.baseline(size, lineHeight: 0.8 * size) }
+            .alignmentGuide(.top) { $0[.firstTextBaseline] - Archivo.numberBaseline(size) }
             .frame(height: 0.8 * size, alignment: .topLeading)
     }
 }
@@ -116,6 +116,14 @@ enum Archivo {
     static func baseline(_ size: CGFloat, lineHeight: CGFloat) -> CGFloat {
         let (a, d) = ((ascent * size).rounded(), (descent * size).rounded())
         return (lineHeight - a - d) / 2 + a
+    }
+
+    /// The number's baseline in its 0.8 em line box. WebKit keeps the part below the baseline,
+    /// (line height − ascent + descent)/2, a whole number of points (measured against the HTML in the replica: 87, 128
+    /// and the dashes all land on the same pixel only this way).
+    static func numberBaseline(_ size: CGFloat) -> CGFloat {
+        let lineHeight = 0.8 * size
+        return lineHeight - ((lineHeight - ascent * size + descent * size) / 2).rounded()
     }
 
     /// CSS `line-height: normal`: the rounded ascent plus the rounded descent (Archivo has no line gap).
