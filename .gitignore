@@ -1,3 +1,5 @@
 ios/*.xcodeproj
 ios/DerivedData
 ios/App/Info.plist
+ios/fastlane/report.xml
+ios/fastlane/README.md

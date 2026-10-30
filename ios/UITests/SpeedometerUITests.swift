@@ -70,6 +70,92 @@ final class SpeedometerUITests: XCTestCase {
         XCTAssertTrue(wait(10) { shows("MPH") }, "mph not remembered: \(texts(app))")
     }
 
+    /// The SwiftUI screen against the HTML it was drawn from: the same states, launched once each way (`-reference`
+    /// shows Web/index.html), screenshot by screenshot. The number, the rule and the unit row must sit within a pixel of
+    /// the HTML's, and almost no pixel may differ.
+    func testMatchesReference() throws {
+        var shots: [String: [String: XCUIScreenshot]] = [:]
+        for mode in ["paper", "html"] {
+            XCUIDevice.shared.orientation = .portrait
+            let app = XCUIApplication()
+            app.launchArguments = mode == "html" ? ["-reference"] : []
+            addUIInterruptionMonitor(withDescription: "location") { alert in
+                guard alert.buttons["Allow While Using App"].exists else { return false }
+                alert.buttons["Allow While Using App"].tap()
+                return true
+            }
+            app.launch()
+            allowLocation()
+            func shows(_ text: String) -> Bool { app.staticTexts[text].exists }
+            func take(_ name: String) {
+                _ = wait(1.5) { false }   // let any size change finish
+                shots[name, default: [:]][mode] = XCUIScreen.main.screenshot()
+            }
+            XCTAssertTrue(wait(10) { shows("KM/H") || shows("MPH") }, "\(mode): no unit")
+            if shows("MPH") { app.tap() }
+
+            drive(24.17)
+            XCTAssertTrue(wait(15) { shows("87") }, "\(mode) 87: \(texts(app))")
+            take("87")
+            app.tap()
+            XCTAssertTrue(wait(5) { shows("54") }, "\(mode) 54: \(texts(app))")
+            take("54-mph")
+            app.tap()
+            XCTAssertTrue(wait(5) { shows("87") })
+            drive(35.56)
+            XCTAssertTrue(wait(15) { shows("128") }, "\(mode) 128: \(texts(app))")
+            take("128")
+            XCUIDevice.shared.orientation = .landscapeLeft
+            _ = wait(2) { false }
+            take("128-landscape")
+            XCUIDevice.shared.orientation = .portrait
+            _ = wait(2) { false }
+            driving = nil
+            XCTAssertTrue(wait(30) { shows("FINDING GPS") }, "\(mode) stale: \(texts(app))")
+            take("finding-gps")
+            app.terminate()
+        }
+        for (name, pair) in shots.sorted(by: { $0.key < $1.key }) {
+            guard let paper = pair["paper"], let html = pair["html"] else { XCTFail("\(name): missing a screenshot"); continue }
+            compare(name, paper, html)
+        }
+    }
+
+    /// Ink boxes (number above the rule, the rule, the unit row below it) and the share of differing pixels.
+    private func compare(_ name: String, _ paper: XCUIScreenshot, _ html: XCUIScreenshot) {
+        let a = Gray(paper.image), b = Gray(html.image)
+        guard a.width == b.width, a.height == b.height else { XCTFail("\(name): sizes differ"); return }
+        let (pa, pb) = (a.parts(), b.parts())
+        var differ = 0
+        var diff = [UInt8](repeating: 0, count: a.width * a.height * 4)
+        for i in 0..<(a.width * a.height) {
+            let (x, y) = (Int(a.pixels[i]), Int(b.pixels[i]))
+            let same = abs(x - y) <= 60
+            if !same { differ += 1 }
+            // Same: the screen faded; only in the SwiftUI screen: red; only in the HTML: blue.
+            let v = UInt8(min(255, 170 + x / 3))
+            diff[i * 4 + 0] = same ? v : (x < y ? 230 : 30)
+            diff[i * 4 + 1] = same ? v : 30
+            diff[i * 4 + 2] = same ? v : (x < y ? 30 : 230)
+            diff[i * 4 + 3] = 255
+        }
+        let share = Double(differ) / Double(a.width * a.height)
+        print("COMPARE \(name): differing \(String(format: "%.4f", share * 100))% | paper \(pa) | html \(pb)")
+        for (label, image) in [("paper", paper.image), ("html", html.image), ("diff", Gray.image(diff, a.width, a.height))] {
+            let attachment = XCTAttachment(image: image)
+            attachment.name = "cmp-\(name)-\(label)"
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let px = 3   // 1 pt at 3x
+        for (part, x, y) in [("number", pa.number, pb.number), ("rule", pa.rule, pb.rule), ("unit row", pa.unit, pb.unit)] {
+            guard let x, let y else { XCTFail("\(name): no \(part) (paper \(String(describing: x)), html \(String(describing: y)))"); continue }
+            XCTAssertTrue(abs(x.minX - y.minX) <= px && abs(x.maxX - y.maxX) <= px && abs(x.minY - y.minY) <= px
+                          && abs(x.maxY - y.maxY) <= px, "\(name): \(part) at \(x) in SwiftUI, \(y) in the HTML")
+        }
+        XCTAssertLessThan(share, 0.003, "\(name): \(share * 100)% of pixels differ")
+    }
+
     private func texts(_ app: XCUIApplication) -> String {
         app.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: " | ")
     }
@@ -115,5 +201,57 @@ final class SpeedometerUITests: XCTestCase {
         a.name = name
         a.lifetime = .keepAlways
         add(a)
+    }
+}
+
+/// A screenshot as 8-bit grey pixels.
+private struct Gray {
+    let width: Int, height: Int
+    var pixels: [UInt8]
+
+    init(_ image: UIImage) {
+        let cg = image.cgImage!
+        width = cg.width; height = cg.height
+        pixels = [UInt8](repeating: 0, count: width * height)
+        pixels.withUnsafeMutableBytes { buffer in
+            let context = CGContext(data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width,
+                                    space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)!
+            context.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
+        }
+    }
+
+    struct Box: CustomStringConvertible {
+        var minX, minY, maxX, maxY: Int
+        var description: String { "(\(minX),\(minY))–(\(maxX),\(maxY))" }
+    }
+
+    /// The rule is the lowest run of rows more than half inked (a row through the digits can be too); the number is the
+    /// ink above it, the unit row below.
+    func parts() -> (number: Box?, rule: Box?, unit: Box?) {
+        let paper = Int(pixels[0])
+        func ink(_ x: Int, _ y: Int) -> Bool { abs(Int(pixels[y * width + x]) - paper) > 30 }
+        let rows = (0..<height).map { y in (0..<width).reduce(0) { $0 + (ink($1, y) ? 1 : 0) } }
+        guard let bottom = rows.lastIndex(where: { $0 > width / 2 }) else { return (nil, nil, nil) }
+        var top = bottom
+        while top > 0 && rows[top - 1] > width / 2 { top -= 1 }
+        func box(_ ys: Range<Int>) -> Box? {
+            var b: Box?
+            for y in ys where rows[y] > 0 {
+                for x in 0..<width where ink(x, y) {
+                    b = Box(minX: min(b?.minX ?? x, x), minY: min(b?.minY ?? y, y), maxX: max(b?.maxX ?? x, x), maxY: max(b?.maxY ?? y, y))
+                }
+            }
+            return b
+        }
+        return (box(0..<top), box(top..<(bottom + 1)), box((bottom + 1)..<height))
+    }
+
+    static func image(_ rgba: [UInt8], _ width: Int, _ height: Int) -> UIImage {
+        var data = rgba
+        let cg = data.withUnsafeMutableBytes { buffer in
+            CGContext(data: buffer.baseAddress, width: width, height: height, bitsPerComponent: 8, bytesPerRow: width * 4,
+                      space: CGColorSpaceCreateDeviceRGB(), bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)!.makeImage()!
+        }
+        return UIImage(cgImage: cg)
     }
 }
