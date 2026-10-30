@@ -15,55 +15,62 @@ final class SpeedometerUITests: XCTestCase {
         }
         app.launch()
         allowLocation()
-        let speed = app.descendants(matching: .any)["speed"], unit = app.descendants(matching: .any)["unit"],
-            status = app.descendants(matching: .any)["status"]
-        XCTAssertTrue(speed.waitForExistence(timeout: 10), "no speed on screen")
+        // The screen is a web page: its texts show up as static texts labelled with what they say.
+        func shows(_ text: String) -> Bool { app.staticTexts[text].exists }
+        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 10), "no screen")
+        XCTAssertTrue(wait(10) { shows("KM/H") || shows("MPH") }, "no unit on screen")
         shot(app, "launch")
-        if unit.label == "MPH" { app.tap() }   // a previous run left mph on
+        if shows("MPH") { app.tap() }   // a previous run left mph on
 
         // 87 km/h.
         drive(24.17)
-        XCTAssertTrue(wait(15) { speed.label == "87" }, "speed \(speed.label), status \(status.label)")
-        XCTAssertEqual(unit.label, "KM/H")
-        XCTAssertTrue(status.label.hasPrefix("GPS ±"), status.label)
+        XCTAssertTrue(wait(15) { shows("87") }, "no 87: \(texts(app))")
+        XCTAssertTrue(shows("KM/H"))
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'GPS ±'")).firstMatch.exists, texts(app))
         shot(app, "87-kmh")
 
         // Tap: mph, and back.
         app.tap()
-        XCTAssertTrue(wait(5) { unit.label == "MPH" && speed.label == "54" }, "mph: \(speed.label) \(unit.label)")
+        XCTAssertTrue(wait(5) { shows("MPH") && shows("54") }, "mph: \(texts(app))")
         shot(app, "54-mph")
         app.tap()
-        XCTAssertTrue(wait(5) { unit.label == "KM/H" && speed.label == "87" }, "back to km/h: \(speed.label)")
+        XCTAssertTrue(wait(5) { shows("KM/H") && shows("87") }, "back to km/h: \(texts(app))")
 
         // Parked: jitter reads 0.
         drive(0.4)
-        XCTAssertTrue(wait(15) { speed.label == "0" }, "parked shows \(speed.label)")
+        XCTAssertTrue(wait(15) { shows("0") }, "parked: \(texts(app))")
         shot(app, "0-parked")
 
         // Three digits still fit.
         drive(35.56)
-        XCTAssertTrue(wait(15) { speed.label == "128" }, "fast shows \(speed.label)")
-        XCTAssertTrue(speed.frame.maxX <= app.frame.maxX + 0.5, "128 runs off the screen: \(speed.frame)")
+        XCTAssertTrue(wait(15) { shows("128") }, "fast: \(texts(app))")
+        Thread.sleep(forTimeInterval: 1)
+        XCTAssertTrue(app.frame.contains(app.staticTexts["128"].frame), "128 runs off the screen: \(app.staticTexts["128"].frame)")
         shot(app, "128-kmh")
 
-        // Landscape.
+        // Landscape: the number morphs to the new size and stays on screen.
         XCUIDevice.shared.orientation = .landscapeLeft
         drive(35.56)
-        XCTAssertTrue(wait(15) { speed.label == "128" }, "landscape shows \(speed.label)")
+        Thread.sleep(forTimeInterval: 2)
+        XCTAssertTrue(wait(15) { shows("128") }, "landscape: \(texts(app))")
+        XCTAssertTrue(app.frame.contains(app.staticTexts["128"].frame), "128 runs off the landscape screen")
         shot(app, "128-landscape")
         XCUIDevice.shared.orientation = .portrait
 
         // No new fix for longer than Speedometer.staleAfter: dashes, never a frozen number.
-        XCTAssertTrue(wait(30) { status.label == "FINDING GPS" }, "stale fix still shows \(speed.label)")
+        XCTAssertTrue(wait(30) { shows("FINDING GPS") }, "stale fix: \(texts(app))")
         shot(app, "finding-gps")
 
         // The unit choice survives a relaunch.
         app.tap()
-        XCTAssertTrue(wait(5) { unit.label == "MPH" })
+        XCTAssertTrue(wait(5) { shows("MPH") })
         app.terminate()
         app.launch()
-        XCTAssertTrue(app.descendants(matching: .any)["unit"].waitForExistence(timeout: 10))
-        XCTAssertEqual(app.descendants(matching: .any)["unit"].label, "MPH", "mph not remembered")
+        XCTAssertTrue(wait(10) { shows("MPH") }, "mph not remembered: \(texts(app))")
+    }
+
+    private func texts(_ app: XCUIApplication) -> String {
+        app.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: " | ")
     }
 
     /// A simulated GPS fix moving at `speed` m/s.
@@ -92,7 +99,7 @@ final class SpeedometerUITests: XCTestCase {
     }
 
     private func shot(_ app: XCUIApplication, _ name: String) {
-        let a = XCTAttachment(screenshot: app.screenshot())
+        let a = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
         a.name = name
         a.lifetime = .keepAlways
         add(a)

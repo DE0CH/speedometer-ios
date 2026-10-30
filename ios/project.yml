@@ -17,7 +17,12 @@ targets:
   Speedometer:
     type: application
     platform: iOS
-    sources: [App]
+    sources:
+      - path: App
+        excludes: ["Web/**"]
+      - path: App/Web   # the screen: the mock's HTML/CSS and the Archivo font (OFL), kept as a folder
+        type: folder
+        buildPhase: resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.de0ch.speedometer

@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Speed</title>
+<style>
+  /* The screen is the "B · Paper" mock (Deyao, 2026-10-30), same CSS. Speedometer.swift feeds it through update(). */
+  @font-face { font-family: Archivo; src: url("Archivo.ttf") format("truetype"); font-weight: 100 900; font-stretch: 62% 125%; }
+  :root { --paper: #f4f2ee; --ink: #111; }
+  @media (prefers-color-scheme: dark) { :root { --paper: #111; --ink: #f4f2ee; } }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--paper); color: var(--ink); overflow: hidden;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent; }
+  .screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-end;
+    padding: 0 calc(20px + env(safe-area-inset-right)) calc(56px + env(safe-area-inset-bottom)) calc(20px + env(safe-area-inset-left)); }
+  .num { font-family: Archivo; font-weight: 900; font-stretch: 68%; font-variant-numeric: tabular-nums;
+    line-height: .8; letter-spacing: -0.02em; white-space: nowrap; }
+  .num.dim { opacity: .25; }
+  .anim .num { transition: font-size .35s ease; }   /* only while the screen resizes: a rotation morphs, a new digit count snaps */
+  .unit { font-family: Archivo; font-weight: 700; font-stretch: 100%; letter-spacing: .18em; text-transform: uppercase;
+    font-size: 12px; margin-top: 18px; border-top: 2px solid var(--ink); padding-top: 8px; width: 100%;
+    display: flex; justify-content: space-between; }
+  #measure { position: absolute; visibility: hidden; font-size: 100px; transition: none; }
+</style>
+</head>
+<body>
+<div class="screen">
+  <div class="num dim" id="num">– –</div>
+  <div class="unit"><span id="unit">KM/H</span><span id="status">FINDING GPS</span></div>
+</div>
+<div class="num" id="measure"></div>
+<script>
+  const num = document.getElementById("num"), measure = document.getElementById("measure");
+  let speed = false;
+
+  // The mock's "87" was 215 px on a 260 px wide screen: 82% of the width for two digits, capped by the height in
+  // landscape, and shrunk so three digits still fit. The dashes are a third of that.
+  function fit() {
+    const s = getComputedStyle(document.querySelector(".screen"));
+    const avail = innerWidth - parseFloat(s.paddingLeft) - parseFloat(s.paddingRight);
+    measure.textContent = num.textContent;
+    const perPx = measure.getBoundingClientRect().width / 100;
+    let size = Math.min(innerWidth * 0.82, innerHeight * 0.6, avail / perPx);
+    if (!speed) size = Math.min(innerWidth * 0.82, innerHeight * 0.6) / 3;
+    num.style.fontSize = size + "px";
+  }
+
+  // Called from Swift with the formatted reading.
+  window.update = function (r) {
+    speed = r.speed;
+    num.textContent = r.number;
+    num.classList.toggle("dim", !r.speed);
+    document.getElementById("unit").textContent = r.unit;
+    document.getElementById("status").textContent = r.status;
+    fit();
+  };
+
+  let settle;
+  addEventListener("resize", () => {
+    document.body.classList.add("anim");
+    fit();
+    clearTimeout(settle);
+    settle = setTimeout(() => document.body.classList.remove("anim"), 400);
+  });
+  document.addEventListener("click", () => webkit.messageHandlers.tap.postMessage(null));
+  // Size again once the font is in: before that the digits are measured in a fallback face.
+  document.fonts.load('900 68% 100px Archivo').then(fit);
+  document.fonts.addEventListener("loadingdone", fit);
+  fit();
+</script>
+</body>
+</html>
