@@ -15,7 +15,7 @@ on:
       device: { type: string, default: iPhone 17 }
   push:
     branches: [main]
-    paths: ["ios/**", ".github/workflows/ios.yml"]
+    paths: ["ios/**", "!ios/fastlane/**", ".github/workflows/ios.yml"]
 permissions: { contents: read }
 defaults:
   run:

@@ -51,13 +51,14 @@ final class SpeedometerUITests: XCTestCase {
         // Landscape: the number morphs to the new size and stays on screen.
         XCUIDevice.shared.orientation = .landscapeLeft
         drive(35.56)
-        Thread.sleep(forTimeInterval: 2)
+        _ = wait(2) { false }
         XCTAssertTrue(wait(15) { shows("128") }, "landscape: \(texts(app))")
         XCTAssertTrue(app.frame.contains(app.staticTexts["128"].frame), "128 runs off the landscape screen")
         shot(app, "128-landscape")
         XCUIDevice.shared.orientation = .portrait
 
-        // No new fix for longer than Speedometer.staleAfter: dashes, never a frozen number.
+        // No new fix for longer than Speedometer.staleAfter
+        driving = nil: dashes, never a frozen number.
         XCTAssertTrue(wait(30) { shows("FINDING GPS") }, "stale fix: \(texts(app))")
         shot(app, "finding-gps")
 
@@ -73,8 +74,17 @@ final class SpeedometerUITests: XCTestCase {
         app.staticTexts.allElementsBoundByIndex.map(\.label).joined(separator: " | ")
     }
 
+    /// The speed being driven: `wait` re-sends it every half second, as a moving phone keeps reporting fixes (one fix
+    /// goes stale after Speedometer.staleAfter on a slow simulator).
+    private var driving: Double?
+
     /// A simulated GPS fix moving at `speed` m/s.
     private func drive(_ speed: Double) {
+        driving = speed
+        send(speed)
+    }
+
+    private func send(_ speed: Double) {
         let fix = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 51.7520, longitude: -1.2577), altitude: 60,
                              horizontalAccuracy: 3, verticalAccuracy: 3, course: 90, courseAccuracy: 5,
                              speed: speed, speedAccuracy: 0.5, timestamp: Date())   // ±0.5 m/s = ±2 km/h, ±2 mph
@@ -93,6 +103,7 @@ final class SpeedometerUITests: XCTestCase {
     private func wait(_ seconds: TimeInterval, _ condition: () -> Bool) -> Bool {
         let end = Date().addingTimeInterval(seconds)
         while Date() < end {
+            if let speed = driving { send(speed) }
             if condition() { return true }
             Thread.sleep(forTimeInterval: 0.5)
         }
