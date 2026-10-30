@@ -1,4 +1,4 @@
-# Speed
+# Speedometer
 
 An iPhone speedometer: open it and see one number, your GPS speed.
 
