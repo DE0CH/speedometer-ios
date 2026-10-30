@@ -94,7 +94,7 @@ final class SpeedometerUITests: XCTestCase {
     }
 
     private func shot(_ app: XCUIApplication, _ name: String) {
-        let a = XCTAttachment(screenshot: app.screenshot())
+        let a = XCTAttachment(screenshot: XCUIScreen.main.screenshot())   // app.screenshot() is half black in landscape
         a.name = name
         a.lifetime = .keepAlways
         add(a)
