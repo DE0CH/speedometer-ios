@@ -79,6 +79,7 @@ jobs:
           grep -qE "\*\* TEST (EXECUTE )?SUCCEEDED \*\*" "$RUNNER_TEMP/test.log"
       - name: Keep the replica screenshots and log
         if: always()
+        continue-on-error: true   # a GitHub artifact-storage hiccup never blocks a release
         uses: actions/upload-artifact@v4
         with:
           name: replica-screens-${{ inputs.appearance || 'light' }}
