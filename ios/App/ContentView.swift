@@ -15,27 +15,17 @@ struct ContentView: View {
         GeometryReader { geo in
             VStack(alignment: .leading, spacing: 0) {
                 Spacer(minLength: 0)
-                // Drawn once at a large fixed size and scaled down to fit, never re-set at a new font size: a scale
-                // animates, so the number grows and shrinks smoothly through a rotation.
-                let scale = numberScale(in: geo.size)
                 Text(number)
-                    .font(.system(size: Self.baseSize, weight: .black).width(.compressed))
+                    // Sized by the height, then shrunk to the width: two digits fill it edge to edge, three step down.
+                    .font(.system(size: geo.size.height * (hasSpeed ? 0.62 : 0.2), weight: .black).width(.compressed))
                     .monospacedDigit()
-                    .fixedSize()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.1)
                     .foregroundStyle(ink.opacity(hasSpeed ? 1 : 0.25))
-                    .background(GeometryReader { Color.clear.preference(key: NaturalSize.self, value: $0.size) })
-                    .scaleEffect(scale, anchor: .bottomLeading)
-                    // The digits' baseline sits on the frame's bottom (the font's descent hangs below it), so the gap
-                    // to the rule is the same at every size and digit count.
-                    .offset(y: Self.descent * scale)
-                    .frame(width: natural.width * scale, height: (natural.height - Self.descent) * scale,
-                           alignment: .bottomLeading)
-                    // Only a rotation animates; a new digit count snaps, so 99 → 100 never overflows mid-animation.
-                    .animation(.smooth(duration: 0.35), value: geo.size)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(number)
+                    .frame(maxWidth: hasSpeed ? .infinity : nil, alignment: .leading)
                     .accessibilityIdentifier("speed")
-                Rectangle().fill(ink).frame(height: 2).padding(.top, 16)
+                    .accessibilityLabel(number)
+                Rectangle().fill(ink).frame(height: 2).padding(.top, 14)
                 HStack {
                     Text(mph ? "MPH" : "KM/H").accessibilityIdentifier("unit")
                     Spacer()
@@ -60,23 +50,8 @@ struct ContentView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityHint(meter.reading == .denied ? "Tap to open Settings" : "Tap to switch between km/h and mph")
-        .onPreferenceChange(NaturalSize.self) { natural = $0 }
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
-    }
-
-    /// Larger than the number ever shows, so the scale only shrinks and the digits stay sharp.
-    private static let baseSize: CGFloat = 700
-    /// How far the font's line box reaches below the baseline at `baseSize` (digits have no descenders).
-    private static let descent = -UIFont.systemFont(ofSize: baseSize, weight: .black, width: .compressed).descender
-    @State private var natural = CGSize(width: 1, height: 1)
-
-    /// Sized by the screen height (62% for a speed, 20% for the dashes), then shrunk to the width: two digits fill it
-    /// edge to edge, three step down.
-    private func numberScale(in size: CGSize) -> CGFloat {
-        let byHeight = size.height * (hasSpeed ? 0.62 : 0.2) / Self.baseSize
-        let byWidth = (size.width - 40) / max(natural.width, 1)
-        return max(min(byHeight, byWidth), 0.01)
     }
 
     private var hasSpeed: Bool {
@@ -96,10 +71,4 @@ struct ContentView: View {
         case .speed(_, let accuracy): "GPS ±\(Int(accuracy.rounded())) M"
         }
     }
-}
-
-/// The number's size at `ContentView.baseSize`, before scaling.
-private struct NaturalSize: PreferenceKey {
-    static var defaultValue = CGSize(width: 1, height: 1)
-    static func reduce(value: inout CGSize, nextValue: () -> CGSize) { value = nextValue() }
 }
