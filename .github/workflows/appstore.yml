@@ -30,7 +30,7 @@ jobs:
       - name: The 87 km/h screen as the store screenshot
         run: |
           mkdir -p fastlane/screenshots/en-US
-          cp "$RUNNER_TEMP"/screens/*-87-kmh.png fastlane/screenshots/en-US/1-87-kmh.png
+          cp "$(find "$RUNNER_TEMP/screens" -name "*-87-kmh.png" | head -1)" fastlane/screenshots/en-US/1-87-kmh.png
           python3 -c "import struct;print(struct.unpack('>II',open('fastlane/screenshots/en-US/1-87-kmh.png','rb').read()[16:24]))"
       - name: Load the listing (no review submission)
         env:
