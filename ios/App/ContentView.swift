@@ -54,22 +54,21 @@ struct Reading: Equatable {
     var json: [String: Any] { ["number": number, "unit": unit, "status": status, "speed": speed] }
 }
 
-/// index.html's layout in SwiftUI, number for number: bottom-left, 20 pt plus the safe area from the sides and 56 pt plus
-/// the safe area from the bottom; the number in a CSS line box of 0.8 em over an 18 pt gap, a 2 pt rule, 8 pt, then the
-/// 12 pt unit row. As in the HTML, the number's size comes from the whole screen (one change per rotation) and only it
-/// animates; the safe area, which iOS updates a moment after the size, only moves the edges. A size animation that also
-/// followed the safe area changed course mid-rotation, so the number bounced.
+/// index.html's layout in SwiftUI, number for number: bottom-left, 20 pt from the sides and 56 pt from the bottom of the
+/// safe area; the number in a CSS line box of 0.8 em over an 18 pt gap, a 2 pt rule, 8 pt, then the 12 pt unit row.
+/// As in the HTML, only the number's size animates, and only when the screen size changes (a rotation).
 private struct Paper: View {
     let reading: Reading
 
     var body: some View {
-        GeometryReader { geo in
-            let inset = geo.safeAreaInsets
-            let size = Archivo.fit(reading, screen: geo.size, avail: geo.size.width - 40 - inset.leading - inset.trailing)
+        GeometryReader { geo in   // the safe area; a reader that ignores it sees no insets
+            let screen = CGSize(width: geo.size.width + geo.safeAreaInsets.leading + geo.safeAreaInsets.trailing,
+                                height: geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom)
+            let size = Archivo.fit(reading, screen: screen, avail: geo.size.width - 40)
             VStack(alignment: .leading, spacing: 0) {
                 Number(text: reading.number, size: size)
                     .opacity(reading.speed ? 1 : 0.25)
-                    .animation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.35), value: geo.size)   // CSS `ease`, only on a resize
+                    .animation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.35), value: screen)   // CSS `ease`, only on a resize
                 Rectangle().frame(height: 2).padding(.top, 18)
                 HStack(spacing: 0) {
                     Text(reading.unit)
@@ -83,10 +82,9 @@ private struct Paper: View {
                 .padding(.top, 8)
             }
             .foregroundStyle(Color.ink)
-            .padding(EdgeInsets(top: 0, leading: 20 + inset.leading, bottom: 56 + inset.bottom, trailing: 20 + inset.trailing))
+            .padding(EdgeInsets(top: 0, leading: 20, bottom: 56, trailing: 20))
             .frame(width: geo.size.width, height: geo.size.height, alignment: .bottomLeading)
         }
-        .ignoresSafeArea()
     }
 }
 
