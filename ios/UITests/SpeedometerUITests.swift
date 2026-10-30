@@ -15,9 +15,7 @@ final class SpeedometerUITests: XCTestCase {
         }
         app.launch()
         allowLocation()
-        // The screen is a web page: its texts show up as static texts labelled with what they say.
         func shows(_ text: String) -> Bool { app.staticTexts[text].exists }
-        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 10), "no screen")
         XCTAssertTrue(wait(10) { shows("KM/H") || shows("MPH") }, "no unit on screen")
         shot(app, "launch")
         if shows("MPH") { app.tap() }   // a previous run left mph on
@@ -105,9 +103,14 @@ final class SpeedometerUITests: XCTestCase {
             drive(35.56)
             XCTAssertTrue(wait(15) { shows("128") }, "\(mode) 128: \(texts(app))")
             take("128")
+            print("ROTATE \(mode) landscape \(Date().timeIntervalSince1970)")   // for the video: the motion through a rotation
             XCUIDevice.shared.orientation = .landscapeLeft
             _ = wait(2) { false }
             take("128-landscape")
+            drive(24.17)
+            XCTAssertTrue(wait(15) { shows("87") })
+            _ = wait(1) { false }
+            print("ROTATE \(mode) portrait \(Date().timeIntervalSince1970)")
             XCUIDevice.shared.orientation = .portrait
             _ = wait(2) { false }
             driving = nil
@@ -123,7 +126,9 @@ final class SpeedometerUITests: XCTestCase {
 
     /// Ink boxes (number above the rule, the rule, the unit row below it) and the share of differing pixels.
     private func compare(_ name: String, _ paper: XCUIScreenshot, _ html: XCUIScreenshot) {
-        let a = Gray(paper.image), b = Gray(html.image)
+        // A landscape screenshot keeps the portrait pixel grid: turn it upright first.
+        let (a, b) = name.contains("landscape") ? (Gray(paper.image).upright(), Gray(html.image).upright())
+                                                : (Gray(paper.image), Gray(html.image))
         guard a.width == b.width, a.height == b.height else { XCTFail("\(name): sizes differ"); return }
         let (pa, pb) = (a.parts(), b.parts())
         var differ = 0
@@ -209,6 +214,10 @@ private struct Gray {
     let width: Int, height: Int
     var pixels: [UInt8]
 
+    init(width: Int, height: Int, pixels: [UInt8]) {
+        self.width = width; self.height = height; self.pixels = pixels
+    }
+
     init(_ image: UIImage) {
         let cg = image.cgImage!
         width = cg.width; height = cg.height
@@ -218,6 +227,15 @@ private struct Gray {
                                     space: CGColorSpaceCreateDeviceGray(), bitmapInfo: CGImageAlphaInfo.none.rawValue)!
             context.draw(cg, in: CGRect(x: 0, y: 0, width: width, height: height))
         }
+    }
+
+    /// The landscape screen as it is seen: width and height swapped, if the screenshot came out sideways.
+    func upright() -> Gray {
+        guard height > width else { return self }
+        var turned = self
+        turned.pixels = [UInt8](repeating: 0, count: width * height)
+        for y in 0..<height { for x in 0..<width { turned.pixels[x * height + (height - 1 - y)] = pixels[y * width + x] } }
+        return Gray(width: height, height: width, pixels: turned.pixels)
     }
 
     struct Box: CustomStringConvertible {
