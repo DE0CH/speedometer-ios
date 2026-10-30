@@ -26,12 +26,12 @@ final class SpeedometerUITests: XCTestCase {
         drive(24.17)
         XCTAssertTrue(wait(15) { shows("87") }, "no 87: \(texts(app))")
         XCTAssertTrue(shows("KM/H"))
-        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label BEGINSWITH 'GPS ±'")).firstMatch.exists, texts(app))
+        XCTAssertTrue(shows("±2 KM/H"), "speed accuracy: \(texts(app))")
         shot(app, "87-kmh")
 
         // Tap: mph, and back.
         app.tap()
-        XCTAssertTrue(wait(5) { shows("MPH") && shows("54") }, "mph: \(texts(app))")
+        XCTAssertTrue(wait(5) { shows("MPH") && shows("54") && shows("±2 MPH") }, "mph: \(texts(app))")
         shot(app, "54-mph")
         app.tap()
         XCTAssertTrue(wait(5) { shows("KM/H") && shows("87") }, "back to km/h: \(texts(app))")
@@ -76,7 +76,8 @@ final class SpeedometerUITests: XCTestCase {
     /// A simulated GPS fix moving at `speed` m/s.
     private func drive(_ speed: Double) {
         let fix = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 51.7520, longitude: -1.2577), altitude: 60,
-                             horizontalAccuracy: 3, verticalAccuracy: 3, course: 90, speed: speed, timestamp: Date())
+                             horizontalAccuracy: 3, verticalAccuracy: 3, course: 90, courseAccuracy: 5,
+                             speed: speed, speedAccuracy: 0.5, timestamp: Date())   // ±0.5 m/s = ±2 km/h, ±2 mph
         XCUIDevice.shared.location = XCUILocation(location: fix)
     }
 

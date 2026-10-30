@@ -31,8 +31,10 @@ struct ContentView: View {
         case .waiting: break
         case .denied: status = "LOCATION OFF · TAP"
         case .speed(let ms, let accuracy):
-            number = String(Int((ms * (mph ? 2.236936 : 3.6)).rounded()))
-            status = "GPS ±\(Int(accuracy.rounded())) M"
+            let factor = mph ? 2.236936 : 3.6
+            number = String(Int((ms * factor).rounded()))
+            // The speed's own error, in the shown unit, rounded up.
+            status = accuracy.map { "±\(max(1, Int(($0 * factor).rounded(.up)))) \(mph ? "MPH" : "KM/H")" } ?? "GPS"
             speed = true
         }
         return ["number": number, "unit": mph ? "MPH" : "KM/H", "status": status, "speed": speed]

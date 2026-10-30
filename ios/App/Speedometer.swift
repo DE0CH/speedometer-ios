@@ -7,7 +7,7 @@ final class Speedometer: NSObject, ObservableObject, CLLocationManagerDelegate {
     enum Reading: Equatable {
         case waiting                                  // no fix yet, or the last one is stale
         case denied                                   // location is off for the app
-        case speed(metresPerSecond: Double, accuracy: Double)
+        case speed(metresPerSecond: Double, accuracy: Double?)   // ± m/s, nil when GPS gives none
     }
 
     @Published private(set) var reading: Reading = .waiting
@@ -49,7 +49,7 @@ final class Speedometer: NSObject, ObservableObject, CLLocationManagerDelegate {
         guard let fix = locations.last(where: { $0.speed >= 0 && $0.horizontalAccuracy >= 0 }) else { return }
         lastFix = Date()
         let speed = fix.speed < Self.standstill ? 0 : fix.speed
-        reading = .speed(metresPerSecond: speed, accuracy: fix.horizontalAccuracy)
+        reading = .speed(metresPerSecond: speed, accuracy: fix.speedAccuracy >= 0 ? fix.speedAccuracy : nil)
     }
 
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
