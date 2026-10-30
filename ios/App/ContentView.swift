@@ -25,12 +25,16 @@ struct ContentView: View {
                     .foregroundStyle(ink.opacity(hasSpeed ? 1 : 0.25))
                     .background(GeometryReader { Color.clear.preference(key: NaturalSize.self, value: $0.size) })
                     .scaleEffect(scale, anchor: .bottomLeading)
-                    .frame(width: natural.width * scale, height: natural.height * scale, alignment: .bottomLeading)
+                    // The digits' baseline sits on the frame's bottom (the font's descent hangs below it), so the gap
+                    // to the rule is the same at every size and digit count.
+                    .offset(y: Self.descent * scale)
+                    .frame(width: natural.width * scale, height: (natural.height - Self.descent) * scale,
+                           alignment: .bottomLeading)
                     .animation(.smooth(duration: 0.35), value: scale)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(number)
                     .accessibilityIdentifier("speed")
-                Rectangle().fill(ink).frame(height: 2).padding(.top, 14)
+                Rectangle().fill(ink).frame(height: 2).padding(.top, 16)
                 HStack {
                     Text(mph ? "MPH" : "KM/H").accessibilityIdentifier("unit")
                     Spacer()
@@ -62,6 +66,8 @@ struct ContentView: View {
 
     /// Larger than the number ever shows, so the scale only shrinks and the digits stay sharp.
     private static let baseSize: CGFloat = 700
+    /// How far the font's line box reaches below the baseline at `baseSize` (digits have no descenders).
+    private static let descent = -UIFont.systemFont(ofSize: baseSize, weight: .black, width: .compressed).descender
     @State private var natural = CGSize(width: 1, height: 1)
 
     /// Sized by the screen height (62% for a speed, 20% for the dashes), then shrunk to the width: two digits fill it
