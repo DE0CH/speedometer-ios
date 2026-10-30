@@ -50,6 +50,8 @@ final class SpeedometerUITests: XCTestCase {
         XCUIDevice.shared.orientation = .landscapeLeft
         drive(35.56)
         XCTAssertTrue(wait(15) { speed.label == "128" }, "landscape shows \(speed.label)")
+        Thread.sleep(forTimeInterval: 2)   // let the rotation finish before the screenshot
+        XCTAssertTrue(app.frame.contains(speed.frame), "128 runs off the landscape screen: \(speed.frame) in \(app.frame)")
         shot(app, "128-landscape")
         XCUIDevice.shared.orientation = .portrait
 
