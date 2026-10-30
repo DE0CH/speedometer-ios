@@ -1,0 +1,44 @@
+# Loads the App Store listing into App Store Connect (ios/fastlane: text, category, age rating, the screenshot, free
+# price, every territory, content rights) with the App Store Connect API key. The one screenshot is the replica's
+# 87 km/h screen on an iPhone 17 Pro Max simulator (6.9-inch, 1320 x 2868). Runs on every push to main that changes the
+# listing, so App Store Connect matches git. It never submits for review.
+name: appstore
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ["ios/fastlane/**", ".github/workflows/appstore.yml"]
+concurrency: { group: appstore, cancel-in-progress: true }   # the newest listing wins
+permissions: { contents: read }
+jobs:
+  replica:
+    uses: ./.github/workflows/ios.yml
+    with:
+      upload: false
+      device: iPhone 17 Pro Max
+      appearance: light
+    secrets: inherit
+  listing:
+    needs: replica
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults: { run: { working-directory: ios } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { name: replica-screens-light, path: "${{ runner.temp }}/screens" }
+      - name: The 87 km/h screen as the store screenshot
+        run: |
+          mkdir -p fastlane/screenshots/en-US
+          cp "$RUNNER_TEMP"/screens/*-87-kmh.png fastlane/screenshots/en-US/1-87-kmh.png
+          python3 -c "import struct;print(struct.unpack('>II',open('fastlane/screenshots/en-US/1-87-kmh.png','rb').read()[16:24]))"
+      - name: Load the listing (no review submission)
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
+          FASTLANE_SKIP_UPDATE_CHECK: "1"
+          FASTLANE_HIDE_CHANGELOG: "1"
+        run: |
+          sudo gem install fastlane --no-document > /dev/null
+          fastlane listing

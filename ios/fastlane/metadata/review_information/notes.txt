@@ -1,0 +1,1 @@
+Open the app and allow location access. Your speed appears once GPS has a fix; below 3 km/h it shows 0, so move (walk or drive) to see it change. Tap anywhere to switch between km/h and mph.
