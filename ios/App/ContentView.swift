@@ -16,7 +16,7 @@ struct ContentView: View {
             VStack(alignment: .leading, spacing: 0) {
                 Spacer(minLength: 0)
                 // Drawn once at a large fixed size and scaled down to fit, never re-set at a new font size: a scale
-                // animates, so the number grows and shrinks smoothly through a rotation (and from 2 to 3 digits).
+                // animates, so the number grows and shrinks smoothly through a rotation.
                 let scale = numberScale(in: geo.size)
                 Text(number)
                     .font(.system(size: Self.baseSize, weight: .black).width(.compressed))
@@ -30,7 +30,8 @@ struct ContentView: View {
                     .offset(y: Self.descent * scale)
                     .frame(width: natural.width * scale, height: (natural.height - Self.descent) * scale,
                            alignment: .bottomLeading)
-                    .animation(.smooth(duration: 0.35), value: scale)
+                    // Only a rotation animates; a new digit count snaps, so 99 → 100 never overflows mid-animation.
+                    .animation(.smooth(duration: 0.35), value: geo.size)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(number)
                     .accessibilityIdentifier("speed")
