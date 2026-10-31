@@ -1,14 +1,18 @@
 import SwiftUI
 import WebKit
 
+/// `-reference` shows Web/index.html, the approved mock's HTML, instead of the native screen: the replica draws every
+/// state both ways and compares the screenshots pixel by pixel.
+let reference = ProcessInfo.processInfo.arguments.contains("-reference")
+
 /// The whole app: the "Paper" screen, one number over a rule with the unit and the speed's ± error. Tap anywhere to
-/// switch km/h and mph. `Paper` is SwiftUI; Web/index.html is the approved mock's HTML, the reference it must match: the
-/// replica draws every state both ways (`-reference` shows the HTML) and compares the screenshots pixel by pixel.
+/// switch km/h and mph. `Paper` (SwiftUI) draws the rule and the unit row; `NumberView` (Screen.swift) draws the
+/// number above them from `onReading`.
 struct ContentView: View {
+    let onReading: (Reading) -> Void
     @EnvironmentObject private var meter: Speedometer
     @AppStorage("mph") private var mph = false
     @Environment(\.colorScheme) private var scheme
-    private let reference = ProcessInfo.processInfo.arguments.contains("-reference")
 
     var body: some View {
         Group {
@@ -24,6 +28,7 @@ struct ContentView: View {
         .background((scheme == .dark ? Color(white: 0.067) : Color(red: 0.957, green: 0.949, blue: 0.933)).ignoresSafeArea())
         .statusBarHidden()
         .persistentSystemOverlays(.hidden)
+        .onChange(of: reading, initial: true) { _, reading in onReading(reading) }
     }
 
     private func tap() {
@@ -54,22 +59,15 @@ struct Reading: Equatable {
     var json: [String: Any] { ["number": number, "unit": unit, "status": status, "speed": speed] }
 }
 
-/// index.html's layout in SwiftUI, number for number: bottom-left, 20 pt from the sides and 56 pt from the bottom of the
-/// safe area; the number in a CSS line box of 0.8 em over an 18 pt gap, a 2 pt rule, 8 pt, then the 12 pt unit row.
-/// As in the HTML, only the number's size animates, and only when the screen size changes (a rotation).
+/// index.html's layout in SwiftUI below the number: 20 pt from the sides and 56 pt from the bottom of the safe area, a
+/// 2 pt rule, 8 pt, then the 12 pt unit row.
 private struct Paper: View {
     let reading: Reading
 
     var body: some View {
         GeometryReader { geo in   // the safe area; a reader that ignores it sees no insets
-            let screen = CGSize(width: geo.size.width + geo.safeAreaInsets.leading + geo.safeAreaInsets.trailing,
-                                height: geo.size.height + geo.safeAreaInsets.top + geo.safeAreaInsets.bottom)
-            let size = Archivo.fit(reading, screen: screen, avail: geo.size.width - 40)
             VStack(alignment: .leading, spacing: 0) {
-                Number(text: reading.number, size: size)
-                    .opacity(reading.speed ? 1 : 0.25)
-                    .animation(.timingCurve(0.25, 0.1, 0.25, 1, duration: 0.35), value: screen)   // CSS `ease`, only on a resize
-                Rectangle().frame(height: 2).padding(.top, 18)
+                Rectangle().frame(height: 2)
                 HStack(spacing: 0) {
                     Text(reading.unit)
                     Spacer(minLength: 0)
@@ -85,25 +83,6 @@ private struct Paper: View {
             .padding(EdgeInsets(top: 0, leading: 20, bottom: 56, trailing: 20))
             .frame(width: geo.size.width, height: geo.size.height, alignment: .bottomLeading)
         }
-    }
-}
-
-/// The number at an animatable font size, so a rotation morphs it the way the HTML's `transition: font-size` does.
-private struct Number: View, Animatable {
-    let text: String
-    var size: CGFloat
-    var animatableData: CGFloat {
-        get { size }
-        set { size = newValue }
-    }
-
-    var body: some View {
-        Text(text)
-            .font(Font(Archivo.number(size) as CTFont))
-            .tracking(-0.02 * size)
-            .fixedSize()
-            .alignmentGuide(.top) { $0[.firstTextBaseline] - Archivo.numberBaseline(size) }
-            .frame(height: 0.8 * size, alignment: .topLeading)
     }
 }
 
@@ -162,9 +141,13 @@ enum Archivo {
     }
 }
 
+extension UIColor {
+    static let ink = UIColor { $0.userInterfaceStyle == .dark
+        ? UIColor(red: 0.957, green: 0.949, blue: 0.933, alpha: 1) : UIColor(white: 0.067, alpha: 1) }
+}
+
 private extension Color {
-    static let ink = Color(UIColor { $0.userInterfaceStyle == .dark
-        ? UIColor(red: 0.957, green: 0.949, blue: 0.933, alpha: 1) : UIColor(white: 0.067, alpha: 1) })
+    static let ink = Color(UIColor.ink)
 }
 
 /// Web/index.html in a WKWebView, fed the same reading: the reference the replica compares `Paper` with.
