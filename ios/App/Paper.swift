@@ -2,7 +2,7 @@ import UIKit
 
 /// index.html's layout, number for number, placed by hand rather than by a layout engine: 20 pt from the sides and 56 pt
 /// from the bottom of the safe area, the 12 pt unit row (WebKit's `line-height: normal`), 8 pt, a 2 pt rule, 18 pt, then
-/// the number in a CSS line box of 0.8 em, its baseline where WebKit puts it (`Archivo.numberBaseline`).
+/// the number in a CSS line box of 0.8 em, its baseline where WebKit puts it (`Archivo.numberDrop`).
 final class Paper: UIView {
     var reading: Reading? {
         didSet { if reading != oldValue { setNeedsLayout() } }
@@ -41,8 +41,7 @@ final class Paper: UIView {
         rule.frame = CGRect(x: left, y: rowTop - 8 - 2, width: right - left, height: 2)
 
         let size = Archivo.fit(reading, screen: bounds.size, avail: right - left)
-        let boxTop = rule.frame.minY - 18 - 0.8 * size
-        let baseline = CGPoint(x: left, y: pixel(boxTop + Archivo.numberBaseline(size)))
+        let baseline = CGPoint(x: left, y: rule.frame.minY - 18 - Archivo.numberDrop(size))
         number.alpha = reading.speed ? 1 : 0.25
         if turning {
             let shown = number.size * number.transform.a, big = max(shown, size)
@@ -132,12 +131,14 @@ enum Archivo {
         return (lineHeight - a - d) / 2 + a
     }
 
-    /// The number's baseline in its 0.8 em line box. WebKit keeps the part below the baseline,
-    /// (line height − ascent + descent)/2, a whole number of points (measured against the HTML in the replica: 87, 128
-    /// and the dashes all land on the same pixel only this way).
-    static func numberBaseline(_ size: CGFloat) -> CGFloat {
-        let lineHeight = 0.8 * size
-        return lineHeight - ((lineHeight - ascent * size + descent * size) / 2).rounded()
+    /// How far the number's baseline sits above the bottom of its 0.8 em line box, in whole points as WebKit has it:
+    /// the line height, ascent and descent cut to whole points, and the half-leading too. Fitted to the HTML in the
+    /// replica on the iPhone 17 and 17 Pro Max, portrait and landscape (sizes 110 to 361 pt; 264.0 and 264.7 pt land
+    /// a point apart, which only the whole-point line height explains).
+    static func numberDrop(_ size: CGFloat) -> CGFloat {
+        let lineHeight = (0.8 * size).rounded(.down)
+        let (a, d) = ((ascent * size).rounded(.down), (descent * size).rounded(.down))
+        return lineHeight - (a + ((lineHeight - a - d) / 2).rounded(.down))
     }
 
     /// CSS `line-height: normal`: the rounded ascent plus the rounded descent (Archivo has no line gap).
