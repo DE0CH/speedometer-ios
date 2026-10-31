@@ -27,6 +27,9 @@ final class Speedometer: NSObject, ObservableObject, CLLocationManagerDelegate {
         manager.desiredAccuracy = kCLLocationAccuracyBestForNavigation
         manager.activityType = .otherNavigation
         manager.distanceFilter = kCLDistanceFilterNone
+        // Core Location otherwise pauses updates when the phone seems to stay put (a long red light) and doesn't resume
+        // them by itself: the screen would sit on dashes when the car moves off. The app runs only while on screen.
+        manager.pausesLocationUpdatesAutomatically = false
     }
 
     func start() {

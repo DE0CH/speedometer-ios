@@ -175,8 +175,14 @@ final class SpeedometerUITests: XCTestCase {
         send(speed)
     }
 
+    /// Where the simulated car is: each fix moves it east by the distance driven since the last one, as a real drive
+    /// does (a fix that never moves lets Core Location decide the phone is parked).
+    private var position = (longitude: -1.2577, at: Date())
+
     private func send(_ speed: Double) {
-        let fix = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 51.7520, longitude: -1.2577), altitude: 60,
+        let now = Date()
+        position = (position.longitude + speed * now.timeIntervalSince(position.at) / (111_320 * cos(51.752 * .pi / 180)), now)
+        let fix = CLLocation(coordinate: CLLocationCoordinate2D(latitude: 51.7520, longitude: position.longitude), altitude: 60,
                              horizontalAccuracy: 3, verticalAccuracy: 3, course: 90, courseAccuracy: 5,
                              speed: speed, speedAccuracy: 0.5, timestamp: Date())   // ±0.5 m/s = ±2 km/h, ±2 mph
         XCUIDevice.shared.location = XCUILocation(location: fix)
