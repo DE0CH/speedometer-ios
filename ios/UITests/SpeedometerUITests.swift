@@ -68,7 +68,7 @@ final class SpeedometerUITests: XCTestCase {
         XCTAssertTrue(wait(10) { shows("MPH") }, "mph not remembered: \(texts(app))")
     }
 
-    /// The SwiftUI screen against the HTML it was drawn from: the same states, launched once each way (`-reference`
+    /// The native screen against the HTML it was drawn from: the same states, launched once each way (`-reference`
     /// shows Web/index.html), screenshot by screenshot. The number, the rule and the unit row must sit within a pixel of
     /// the HTML's, and almost no pixel may differ.
     func testMatchesReference() throws {
@@ -137,7 +137,7 @@ final class SpeedometerUITests: XCTestCase {
             let (x, y) = (Int(a.pixels[i]), Int(b.pixels[i]))
             let same = abs(x - y) <= 60
             if !same { differ += 1 }
-            // Same: the screen faded; only in the SwiftUI screen: red; only in the HTML: blue.
+            // Same: the screen faded; only in the native screen: red; only in the HTML: blue.
             let v = UInt8(min(255, 170 + x / 3))
             diff[i * 4 + 0] = same ? v : (x < y ? 230 : 30)
             diff[i * 4 + 1] = same ? v : 30
@@ -156,7 +156,7 @@ final class SpeedometerUITests: XCTestCase {
         for (part, x, y) in [("number", pa.number, pb.number), ("rule", pa.rule, pb.rule), ("unit row", pa.unit, pb.unit)] {
             guard let x, let y else { XCTFail("\(name): no \(part) (paper \(String(describing: x)), html \(String(describing: y)))"); continue }
             XCTAssertTrue(abs(x.minX - y.minX) <= px && abs(x.maxX - y.maxX) <= px && abs(x.minY - y.minY) <= px
-                          && abs(x.maxY - y.maxY) <= px, "\(name): \(part) at \(x) in SwiftUI, \(y) in the HTML")
+                          && abs(x.maxY - y.maxY) <= px, "\(name): \(part) at \(x) natively, \(y) in the HTML")
         }
         XCTAssertLessThan(share, 0.003, "\(name): \(share * 100)% of pixels differ")
     }
