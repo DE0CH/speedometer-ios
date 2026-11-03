@@ -55,6 +55,8 @@ for t in json.load(open(os.path.join(src, "manifest.json"))):
             n += 1; shutil.copy(os.path.join(src, f), os.path.join(dst, "%02d-%s.png" % (n, a.get("suggestedHumanReadableName", f).split("_")[0])))
 print(f"screenshots: {n}")
 PY
+{ grep -iE "storyboard|ibtool|LaunchScreen" "$RUNNER_TEMP/build.log" | grep -viE "^\s*(cd|export|builtin-|/Applications)" | head -20
+  find DerivedData/Build/Products -maxdepth 3 -name "*.storyboardc" -o -maxdepth 3 -name "Assets.car" | head; } | note "storyboard build" || true
 grep -E "COMPARE " "$RUNNER_TEMP/test.log" | note "comparisons" || true
 grep -E "error:|XCTAssert|Test Case .*(passed|failed)|\*\* TEST" "$RUNNER_TEMP/test.log" | head -40 | note "results" || true
 grep -qE "\*\* TEST (EXECUTE )?SUCCEEDED \*\*" "$RUNNER_TEMP/test.log"

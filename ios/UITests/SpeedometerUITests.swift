@@ -106,7 +106,7 @@ final class SpeedometerUITests: XCTestCase {
             print("ROTATE \(mode) landscape \(Date().timeIntervalSince1970)")   // for the video: the motion through a rotation
             XCUIDevice.shared.orientation = .landscapeLeft
             _ = wait(2) { false }
-            take("128-landscape")
+            if turned(app) { take("128-landscape") }
             drive(24.17)
             XCTAssertTrue(wait(15) { shows("87") })
             _ = wait(1) { false }
@@ -148,7 +148,7 @@ final class SpeedometerUITests: XCTestCase {
             shots["waiting", default: [:]][mode] = XCUIScreen.main.screenshot()
             XCUIDevice.shared.orientation = .landscapeLeft
             ready()
-            shots["waiting-landscape", default: [:]][mode] = XCUIScreen.main.screenshot()
+            if turned(app) { shots["waiting-landscape", default: [:]][mode] = XCUIScreen.main.screenshot() }
             XCUIDevice.shared.orientation = .portrait
             app.terminate()
         }
@@ -195,6 +195,15 @@ final class SpeedometerUITests: XCTestCase {
                           && abs(x.maxY - y.maxY) <= px, "\(name): \(part) at \(x) natively, \(y) in the \(against)")
         }
         XCTAssertLessThan(share, 0.003, "\(name): \(share * 100)% of pixels differ")
+    }
+
+    /// Whether the app is now wider than tall. XCUIDevice's orientation does nothing on the iPhone Duo simulator,
+    /// which keeps the app as it was: there is no landscape state to compare.
+    private func turned(_ app: XCUIApplication) -> Bool {
+        let frame = app.windows.firstMatch.frame
+        if frame.width > frame.height { return true }
+        print("NO LANDSCAPE: the app stays \(frame.size) after turning the device")
+        return false
     }
 
     private func texts(_ app: XCUIApplication) -> String {
