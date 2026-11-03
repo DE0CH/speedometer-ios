@@ -35,14 +35,7 @@ jobs:
       - name: Xcode, xcodegen
         env:
           BUILD_NUMBER: ${{ github.run_number }}
-        run: |
-          # The newest released Xcode: no beta or release candidate (the image's Xcode_27.2.app is the 27.2 RC).
-          XCODE=$(for x in /Applications/Xcode*.app; do x=$(readlink -f "$x"); case "$x" in *[Bb]eta*|*[Cc]andidate*) continue;; esac
-            echo "$(defaults read "$x/Contents/Info" CFBundleShortVersionString) $x"; done | sort -uV | tail -1 | cut -d' ' -f2-)
-          echo "Using $XCODE"; sudo xcode-select -s "$XCODE"; xcodebuild -version
-          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
-          sed -i '' "s/BUILD_NUMBER: \"1\"/BUILD_NUMBER: \"$BUILD_NUMBER\"/" project.yml
-          xcodegen generate --quiet
+        run: ./xcode.sh
       - name: Phone replica (simulator, every flow)
         timeout-minutes: 25
         env:
@@ -95,12 +88,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Xcode, xcodegen
-        run: |
-          XCODE=$(for x in /Applications/Xcode*.app; do x=$(readlink -f "$x"); case "$x" in *[Bb]eta*|*[Cc]andidate*) continue;; esac
-            echo "$(defaults read "$x/Contents/Info" CFBundleShortVersionString) $x"; done | sort -uV | tail -1 | cut -d' ' -f2-)
-          echo "Using $XCODE"; sudo xcode-select -s "$XCODE"; xcodebuild -version
-          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
-          xcodegen generate --quiet
+        run: ./xcode.sh
       - name: Replica comparisons on ${{ matrix.device }}
         timeout-minutes: 30
         env:

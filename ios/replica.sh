@@ -17,8 +17,11 @@ ONLY=(); for t in ${TESTS:-}; do ONLY+=("-only-testing:SpeedometerUITests/Speedo
 xcrun simctl boot "$UDID" 2>/dev/null || true
 xcrun simctl bootstatus "$UDID" -b > /dev/null
 # The displays the simulator has (iPhone Duo: the outer and the inner one), and any pose control simctl offers.
-xcrun simctl io "$UDID" enumerate 2>&1 | grep -iE "display|name|size|class" | head -20 || true
-xcrun simctl help 2>&1 | grep -iE "pose|hinge|fold|posture" || true
+# Annotations carry them (and the results below) to the run page, where they read without a log download.
+note() { local t=$1; shift; local m; m=$(head -c 3500 || true); m=${m//'%'/'%25'}; m=${m//$'\n'/'%0A'}; echo "::notice title=$DEVICE $t::$m"; }
+{ xcrun simctl io "$UDID" enumerate 2>&1 | head -60; } | note "displays"
+{ xcrun simctl help 2>&1 | grep -iE "pose|hinge|fold|posture|display" || echo "(no pose, hinge or fold command in simctl help)"
+  echo "-- simctl ui:"; xcrun simctl ui 2>&1 | head -40; } | note "simctl pose commands"
 xcrun simctl ui "$UDID" appearance "$APPEARANCE"
 xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiBars 3 --cellularBars 4 --batteryState charged --batteryLevel 100 || true
 # Location permission up front; the test also answers the prompt if it shows.
@@ -51,4 +54,6 @@ for t in json.load(open(os.path.join(src, "manifest.json"))):
             n += 1; shutil.copy(os.path.join(src, f), os.path.join(dst, "%02d-%s.png" % (n, a.get("suggestedHumanReadableName", f).split("_")[0])))
 print(f"screenshots: {n}")
 PY
+grep -E "COMPARE " "$RUNNER_TEMP/test.log" | note "comparisons" || true
+grep -E "error:|XCTAssert|Test Case .*(passed|failed)|\*\* TEST" "$RUNNER_TEMP/test.log" | head -40 | note "results" || true
 grep -qE "\*\* TEST (EXECUTE )?SUCCEEDED \*\*" "$RUNNER_TEMP/test.log"
