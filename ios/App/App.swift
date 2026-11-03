@@ -59,8 +59,20 @@ final class Screen: UIViewController {
     required init?(coder: NSCoder) { fatalError() }
 
     override func loadView() {
-        view = launchScreen ? UIStoryboard(name: "LaunchScreen", bundle: nil).instantiateInitialViewController()!.view
-            : reference ? html : paper
+        if launchScreen {
+            guard let launch = UIStoryboard(name: "LaunchScreen", bundle: nil).instantiateInitialViewController() else {
+                fatalError("LaunchScreen.storyboard: no initial view controller")
+            }
+            // The launch screen's own controller, as a child that fills the screen (its view can't be lent out).
+            view = UIView()
+            addChild(launch)
+            launch.view.frame = view.bounds
+            launch.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+            view.addSubview(launch.view)
+            launch.didMove(toParent: self)
+        } else {
+            view = reference ? html : paper
+        }
         view.backgroundColor = .paper
         if !reference && !launchScreen { view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tap))) }
     }

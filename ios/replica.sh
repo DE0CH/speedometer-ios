@@ -59,7 +59,7 @@ PY
   sb=$(find DerivedData/Build/Products -maxdepth 3 -name "LaunchScreen.storyboardc" | head -1)
   [ -z "$sb" ] || { ls -la "$sb"; plutil -p "$sb/Info.plist"; }; } | note "storyboard build" || true
 # Why the app crashed, if it did: the newest crash report's exception and first frames.
-{ f=$(ls -t ~/Library/Logs/DiagnosticReports/Speedometer*.ips 2>/dev/null | head -1)
+{ f=$(ls -t ~/Library/Logs/DiagnosticReports/Speedometer-*.ips 2>/dev/null | head -1)
   [ -z "$f" ] || { echo "$f"; tail -n +2 "$f" | python3 -c "
 import json,sys
 d=json.load(sys.stdin)
