@@ -1,1 +1,11 @@
-Open the app and allow location access. Your speed appears once GPS has a fix; below 3 km/h it shows 0, so move (walk or drive) to see it change. Tap anywhere to switch between km/h and mph.
+1. Screen recording: attached in App Review Information (speedometer-review-recording.mp4). It was recorded on a physical iPhone running the latest iOS, as a passenger in a moving vehicle. It starts on the Home Screen, launches the app, shows "FINDING GPS" while the first fix arrives, then the live speed (193, 188, 182, 179 km/h) with its ± accuracy, and the screen turning to landscape.
+
+2. Purpose and audience: GPS Speedometer One shows one thing, the current speed from the iPhone's GPS, in very large type that can be read at a glance. It is for drivers, cyclists and passengers who want a clear, independent speed reading.
+
+3. How to use it: open the app and allow location access when asked. The speed appears as soon as the iPhone has a GPS fix (outdoors works best); below it are the unit and the speed's own accuracy (±). Tap anywhere to switch between km/h and mph. The app works in portrait and landscape and keeps the screen on while open. If location access is off, the screen reads "LOCATION OFF · TAP", and a tap opens Settings. There is no account, login, content or purchase, so no demo credentials are needed.
+
+4. External services: none. The app uses only Apple's Core Location on the device. It makes no network requests and collects no data (App Privacy: Data Not Collected).
+
+5. Regional differences: none. The app works the same in every country and region.
+
+6. Regulated industry: not applicable. The app provides no regulated service and needs no licence.
