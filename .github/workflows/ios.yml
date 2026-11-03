@@ -14,6 +14,7 @@ on:
       upload: { type: boolean, default: false }
       appearance: { type: string, default: light }
       device: { type: string, default: iPhone 17 }
+      runner: { type: string, default: xcode-27 }   # the store screenshot's iPhone 17 Pro Max is on macos-26 only
   push:
     branches: [main]
     paths: ["ios/**", "!ios/fastlane/**", ".github/workflows/ios.yml"]
@@ -24,7 +25,9 @@ defaults:
     working-directory: ios
 jobs:
   build:
-    runs-on: macos-26
+    # GitHub's xcode-27 image (a preview): Xcode 27.1, the first SDK the iPhone Duo gives its whole displays to (an
+    # app built with the iOS 26 SDK sits in a smaller window on it).
+    runs-on: ${{ inputs.runner || 'xcode-27' }}
     concurrency: { group: "ios-${{ inputs.device || 'iPhone 17' }}-${{ inputs.appearance || 'light' }}", cancel-in-progress: false }
     timeout-minutes: 45
     steps:
@@ -33,7 +36,9 @@ jobs:
         env:
           BUILD_NUMBER: ${{ github.run_number }}
         run: |
-          XCODE=$(ls -d /Applications/Xcode_*.app | grep -v -i beta | sort -V | tail -1)
+          # The newest released Xcode: no beta or release candidate (the image's Xcode_27.2.app is the 27.2 RC).
+          XCODE=$(for x in /Applications/Xcode*.app; do x=$(readlink -f "$x"); case "$x" in *[Bb]eta*|*[Cc]andidate*) continue;; esac
+            echo "$(defaults read "$x/Contents/Info" CFBundleShortVersionString) $x"; done | sort -uV | tail -1 | cut -d' ' -f2-)
           echo "Using $XCODE"; sudo xcode-select -s "$XCODE"; xcodebuild -version
           brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
           sed -i '' "s/BUILD_NUMBER: \"1\"/BUILD_NUMBER: \"$BUILD_NUMBER\"/" project.yml
@@ -43,51 +48,7 @@ jobs:
         env:
           DEVICE: ${{ inputs.device || 'iPhone 17' }}
           APPEARANCE: ${{ inputs.appearance || 'light' }}
-        run: |
-          UDID=$(xcrun simctl list devices available -j | python3 -c "
-          import json,sys,re
-          d=json.load(sys.stdin)['devices']
-          rts=sorted((k for k in d if 'iOS' in k), key=lambda k:[int(x) for x in re.findall(r'\d+',k)])
-          for rt in reversed(rts):
-              for dev in d[rt]:
-                  if dev['name']==sys.argv[1]: print(dev['udid']); sys.exit()
-          " "$DEVICE")
-          [ -n "$UDID" ] || { echo "no $DEVICE simulator"; exit 1; }
-          xcrun simctl boot "$UDID" 2>/dev/null || true
-          xcrun simctl bootstatus "$UDID" -b > /dev/null
-          xcrun simctl ui "$UDID" appearance "$APPEARANCE"
-          xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiBars 3 --cellularBars 4 --batteryState charged --batteryLevel 100 || true
-          # Location permission up front; the test also answers the prompt if it shows.
-          xcrun simctl privacy "$UDID" grant location dev.de0ch.speedometer || true
-          ( sleep 1200; echo "watchdog: stopping xcodebuild" >> "$RUNNER_TEMP/test.log"; pkill -INT xcodebuild ) & WATCHDOG=$!
-          mkdir -p "$RUNNER_TEMP/screens"
-          COMMON=(-project Speedometer.xcodeproj -scheme Speedometer -configuration Release -destination "id=$UDID"
-            -derivedDataPath DerivedData ONLY_ACTIVE_ARCH=YES ARCHS=arm64 CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO)
-          xcodebuild build-for-testing "${COMMON[@]}" > "$RUNNER_TEMP/build.log" 2>&1 || true
-          grep -E "error:|\*\* TEST BUILD" "$RUNNER_TEMP/build.log" | head -20 || true
-          # A video of the whole run: the rotations, frame by frame (the test logs "ROTATE <mode> <epoch>").
-          python3 -c "import time; print(time.time())" > "$RUNNER_TEMP/screens/video-start.txt"
-          xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$RUNNER_TEMP/screens/replica.mp4" 2>/dev/null & RECORDER=$!
-          xcodebuild test-without-building "${COMMON[@]}" -resultBundlePath "$RUNNER_TEMP/ui.xcresult" \
-            -test-timeouts-enabled YES -maximum-test-execution-time-allowance 600 > "$RUNNER_TEMP/test.log" 2>&1 || true
-          kill $WATCHDOG 2>/dev/null || true
-          kill -INT $RECORDER 2>/dev/null || true; wait $RECORDER 2>/dev/null || true
-          tail -25 "$RUNNER_TEMP/test.log"
-          grep -E "error:|\*\* TEST|Test Case .*(passed|failed)|XCTAssert" "$RUNNER_TEMP/test.log" | head -40 || true
-          grep -E "COMPARE |ROTATE " "$RUNNER_TEMP/test.log" || true   # native vs the HTML, per state
-          xcrun xcresulttool export attachments --path "$RUNNER_TEMP/ui.xcresult" --output-path "$RUNNER_TEMP/att" >/dev/null 2>&1 || true
-          python3 - "$RUNNER_TEMP/att" "$RUNNER_TEMP/screens" <<'PY' || true
-          import json, os, shutil, sys
-          src, dst = sys.argv[1:]
-          n = 0
-          for t in json.load(open(os.path.join(src, "manifest.json"))):
-              for a in t.get("attachments", []):
-                  f = a.get("exportedFileName", "")
-                  if f.endswith(".png"):
-                      n += 1; shutil.copy(os.path.join(src, f), os.path.join(dst, "%02d-%s.png" % (n, a.get("suggestedHumanReadableName", f).split("_")[0])))
-          print(f"screenshots: {n}")
-          PY
-          grep -qE "\*\* TEST (EXECUTE )?SUCCEEDED \*\*" "$RUNNER_TEMP/test.log"
+        run: ./replica.sh
       - name: Keep the replica screenshots and log
         if: always()
         continue-on-error: true   # a GitHub artifact-storage hiccup never blocks a release
@@ -121,3 +82,39 @@ jobs:
             -authenticationKeyID "$ASC_KEY_ID" -authenticationKeyIssuerID "$ASC_ISSUER_ID" > "$RUNNER_TEMP/export.log" 2>&1 || true
           grep -E "error|EXPORT|Upload|Uploaded|uploaded" "$RUNNER_TEMP/export.log" | sed "s#$RUNNER_TEMP/##" | tail -n 25 || true
           grep -qE "EXPORT SUCCEEDED|Upload succeeded|Uploaded" "$RUNNER_TEMP/export.log"
+  # The launch screen and the native screen against the HTML on the other iPhone sizes, the smallest to the iPhone Duo's
+  # two displays (its simulator boots closed, on the 466 x 678 pt outer display).
+  sizes:
+    if: ${{ !inputs.runner }}   # not when the appstore workflow calls this one
+    strategy:
+      fail-fast: false
+      matrix:
+        device: [iPhone 17e, iPhone Air, iPhone 18 Pro Max, iPhone Duo]
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode, xcodegen
+        run: |
+          XCODE=$(for x in /Applications/Xcode*.app; do x=$(readlink -f "$x"); case "$x" in *[Bb]eta*|*[Cc]andidate*) continue;; esac
+            echo "$(defaults read "$x/Contents/Info" CFBundleShortVersionString) $x"; done | sort -uV | tail -1 | cut -d' ' -f2-)
+          echo "Using $XCODE"; sudo xcode-select -s "$XCODE"; xcodebuild -version
+          brew list xcodegen >/dev/null 2>&1 || brew install xcodegen
+          xcodegen generate --quiet
+      - name: Replica comparisons on ${{ matrix.device }}
+        timeout-minutes: 30
+        env:
+          DEVICE: ${{ matrix.device }}
+          APPEARANCE: light
+          TESTS: testLaunchScreenMatchesWaiting testMatchesReference
+        run: ./replica.sh
+      - name: Keep the screenshots and log
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: sizes-${{ matrix.device }}
+          path: |
+            ${{ runner.temp }}/screens/*.png
+            ${{ runner.temp }}/test.log
+          if-no-files-found: ignore

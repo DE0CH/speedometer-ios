@@ -16,6 +16,7 @@ jobs:
     with:
       upload: false
       device: iPhone 17 Pro Max
+      runner: macos-26
       appearance: light
     secrets: inherit
   listing:
