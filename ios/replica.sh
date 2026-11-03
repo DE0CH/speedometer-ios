@@ -56,7 +56,17 @@ for t in json.load(open(os.path.join(src, "manifest.json"))):
 print(f"screenshots: {n}")
 PY
 { grep -iE "storyboard|ibtool|LaunchScreen" "$RUNNER_TEMP/build.log" | grep -viE "^\s*(cd|export|builtin-|/Applications)" | head -20
-  find DerivedData/Build/Products -maxdepth 3 -name "*.storyboardc" -o -maxdepth 3 -name "Assets.car" | head; } | note "storyboard build" || true
+  sb=$(find DerivedData/Build/Products -maxdepth 3 -name "LaunchScreen.storyboardc" | head -1)
+  [ -z "$sb" ] || { ls -la "$sb"; plutil -p "$sb/Info.plist"; }; } | note "storyboard build" || true
+# Why the app crashed, if it did: the newest crash report's exception and first frames.
+{ f=$(ls -t ~/Library/Logs/DiagnosticReports/Speedometer*.ips 2>/dev/null | head -1)
+  [ -z "$f" ] || { echo "$f"; tail -n +2 "$f" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+print(json.dumps(d.get('exception'))); print(json.dumps(d.get('asi') or d.get('lastExceptionBacktrace',[])[:3])[:1500])
+t=[x for x in d.get('threads',[]) if x.get('triggered')]
+for fr in (t[0]['frames'][:12] if t else []): print(fr.get('symbol'), fr.get('sourceFile',''), fr.get('sourceLine',''))
+" 2>&1; }; } | note "crash" || true
 grep -E "COMPARE " "$RUNNER_TEMP/test.log" | note "comparisons" || true
 grep -E "error:|XCTAssert|Test Case .*(passed|failed)|\*\* TEST" "$RUNNER_TEMP/test.log" | head -40 | note "results" || true
 grep -qE "\*\* TEST (EXECUTE )?SUCCEEDED \*\*" "$RUNNER_TEMP/test.log"
