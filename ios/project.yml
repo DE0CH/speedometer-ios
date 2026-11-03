@@ -36,7 +36,7 @@ targets:
         CFBundleVersion: "$(CURRENT_PROJECT_VERSION)"
         ITSAppUsesNonExemptEncryption: false
         NSLocationWhenInUseUsageDescription: Your speed comes from GPS. Nothing is stored or sent anywhere.
-        UILaunchScreen: {}
+        UILaunchStoryboardName: LaunchScreen   # the waiting state, so the app looks open at once
         UIApplicationSceneManifest:
           UIApplicationSupportsMultipleScenes: false
           UISceneConfigurations:

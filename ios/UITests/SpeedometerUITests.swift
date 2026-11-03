@@ -124,8 +124,43 @@ final class SpeedometerUITests: XCTestCase {
         }
     }
 
+    /// The launch screen against the waiting state it copies, portrait and landscape: `-launch-screen` shows
+    /// LaunchScreen.storyboard as the app's screen. It has no unit (it can't know km/h from mph), so only the unit row's
+    /// right end, where "FINDING GPS" sits, is held to the waiting state's.
+    func testLaunchScreenMatchesWaiting() throws {
+        var shots: [String: [String: XCUIScreenshot]] = [:]
+        for mode in ["paper", "launch"] {
+            XCUIDevice.shared.orientation = .portrait
+            let app = XCUIApplication()
+            app.launchArguments = mode == "launch" ? ["-launch-screen"] : []
+            addUIInterruptionMonitor(withDescription: "location") { alert in
+                guard alert.buttons["Allow While Using App"].exists else { return false }
+                alert.buttons["Allow While Using App"].tap()
+                return true
+            }
+            app.launch()
+            allowLocation()
+            func ready() {
+                if mode == "paper" { XCTAssertTrue(wait(30) { app.staticTexts["FINDING GPS"].exists }, "paper: \(texts(app))") }
+                _ = wait(3) { false }   // the home indicator fades, any size change finishes
+            }
+            ready()
+            shots["waiting", default: [:]][mode] = XCUIScreen.main.screenshot()
+            XCUIDevice.shared.orientation = .landscapeLeft
+            ready()
+            shots["waiting-landscape", default: [:]][mode] = XCUIScreen.main.screenshot()
+            XCUIDevice.shared.orientation = .portrait
+            app.terminate()
+        }
+        for (name, pair) in shots.sorted(by: { $0.key < $1.key }) {
+            guard let paper = pair["paper"], let launch = pair["launch"] else { XCTFail("\(name): missing a screenshot"); continue }
+            compare("launch-\(name)", paper, launch, against: "launch", wholeUnitRow: false)
+        }
+    }
+
     /// Ink boxes (number above the rule, the rule, the unit row below it) and the share of differing pixels.
-    private func compare(_ name: String, _ paper: XCUIScreenshot, _ html: XCUIScreenshot) {
+    private func compare(_ name: String, _ paper: XCUIScreenshot, _ html: XCUIScreenshot, against: String = "html",
+                         wholeUnitRow: Bool = true) {
         // A landscape screenshot keeps the portrait pixel grid: turn it upright first.
         let (a, b) = name.contains("landscape") ? (Gray(paper.image).upright(), Gray(html.image).upright())
                                                 : (Gray(paper.image), Gray(html.image))
@@ -146,7 +181,7 @@ final class SpeedometerUITests: XCTestCase {
         }
         let share = Double(differ) / Double(a.width * a.height)
         print("COMPARE \(name): differing \(String(format: "%.4f", share * 100))% | paper \(pa) | html \(pb)")
-        for (label, image) in [("paper", paper.image), ("html", html.image), ("diff", Gray.image(diff, a.width, a.height))] {
+        for (label, image) in [("paper", paper.image), (against, html.image), ("diff", Gray.image(diff, a.width, a.height))] {
             let attachment = XCTAttachment(image: image)
             attachment.name = "cmp-\(name)-\(label)"
             attachment.lifetime = .keepAlways
@@ -154,9 +189,10 @@ final class SpeedometerUITests: XCTestCase {
         }
         let px = 3   // 1 pt at 3x
         for (part, x, y) in [("number", pa.number, pb.number), ("rule", pa.rule, pb.rule), ("unit row", pa.unit, pb.unit)] {
-            guard let x, let y else { XCTFail("\(name): no \(part) (paper \(String(describing: x)), html \(String(describing: y)))"); continue }
-            XCTAssertTrue(abs(x.minX - y.minX) <= px && abs(x.maxX - y.maxX) <= px && abs(x.minY - y.minY) <= px
-                          && abs(x.maxY - y.maxY) <= px, "\(name): \(part) at \(x) natively, \(y) in the HTML")
+            guard let x, let y else { XCTFail("\(name): no \(part) (paper \(String(describing: x)), \(against) \(String(describing: y)))"); continue }
+            let left = part == "unit row" && !wholeUnitRow || abs(x.minX - y.minX) <= px
+            XCTAssertTrue(left && abs(x.maxX - y.maxX) <= px && abs(x.minY - y.minY) <= px
+                          && abs(x.maxY - y.maxY) <= px, "\(name): \(part) at \(x) natively, \(y) in the \(against)")
         }
         XCTAssertLessThan(share, 0.003, "\(name): \(share * 100)% of pixels differ")
     }

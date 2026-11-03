@@ -32,6 +32,9 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 /// ways and compares the screenshots pixel by pixel.
 let reference = ProcessInfo.processInfo.arguments.contains("-reference")
 
+/// `-launch-screen` shows LaunchScreen.storyboard instead: the replica compares it with the waiting state it copies.
+let launchScreen = ProcessInfo.processInfo.arguments.contains("-launch-screen")
+
 struct Reading: Equatable {
     var number, unit, status: String
     var speed: Bool
@@ -56,9 +59,10 @@ final class Screen: UIViewController {
     required init?(coder: NSCoder) { fatalError() }
 
     override func loadView() {
-        view = reference ? html : paper
+        view = launchScreen ? UIStoryboard(name: "LaunchScreen", bundle: nil).instantiateInitialViewController()!.view
+            : reference ? html : paper
         view.backgroundColor = .paper
-        if !reference { view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tap))) }
+        if !reference && !launchScreen { view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(tap))) }
     }
 
     override func viewDidLoad() {

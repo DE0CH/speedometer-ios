@@ -178,8 +178,7 @@ enum Archivo {
 }
 
 extension UIColor {
-    static let ink = UIColor { $0.userInterfaceStyle == .dark
-        ? UIColor(red: 0.957, green: 0.949, blue: 0.933, alpha: 1) : UIColor(white: 0.067, alpha: 1) }
-    static let paper = UIColor { $0.userInterfaceStyle == .dark
-        ? UIColor(white: 0.067, alpha: 1) : UIColor(red: 0.957, green: 0.949, blue: 0.933, alpha: 1) }
+    // Assets.xcassets, shared with LaunchScreen.storyboard: dark mode swaps paper and ink.
+    static let ink = UIColor(named: "Ink")!
+    static let paper = UIColor(named: "Paper")!
 }

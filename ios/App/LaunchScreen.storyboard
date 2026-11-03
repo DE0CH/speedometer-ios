@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- The launch screen is the app's waiting state ("FINDING GPS"), so opening the app shows the screen at once. It is
+     Paper.swift's layout in constraints: the rule 20 pt in from the safe sides and 78 pt above the safe bottom, the
+     status line box 56 pt above it, and the dimmed dashes' line box 18 pt above the rule, min(82% width, 60% height) / 3
+     em in size. The text is vector art from tools/launch-art (a launch screen can't use the bundled variable font);
+     the unit is left out, since a launch screen can't know whether the last choice was km/h or mph. -->
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" launchScreen="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="launch">
+    <device id="retina6_12" orientation="portrait" appearance="light"/>
+    <dependencies>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
+        <capability name="Named colors" minToolsVersion="9.0"/>
+        <capability name="Safe area layout guides" minToolsVersion="9.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <scene sceneID="scene">
+            <objects>
+                <viewController id="launch" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="root">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="rule">
+                                <rect key="frame" x="20" y="740" width="353" height="2"/>
+                                <color key="backgroundColor" name="Ink"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="2" id="rule-h"/>
+                                </constraints>
+                            </view>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" image="LaunchStatus" translatesAutoresizingMaskIntoConstraints="NO" id="status">
+                                <rect key="frame" x="269.67" y="748" width="103.33" height="14"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="103.332" id="status-w"/>
+                                    <constraint firstAttribute="height" constant="14" id="status-h"/>
+                                </constraints>
+                            </imageView>
+                            <imageView userInteractionEnabled="NO" contentMode="scaleToFill" image="LaunchDashes" translatesAutoresizingMaskIntoConstraints="NO" id="dashes">
+                                <rect key="frame" x="20" y="636" width="81.8" height="86"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" secondItem="dashes" secondAttribute="height" multiplier="76.1:80" id="dashes-aspect"/>
+                                </constraints>
+                            </imageView>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="safe"/>
+                        <color key="backgroundColor" name="Paper"/>
+                        <constraints>
+                            <constraint firstItem="rule" firstAttribute="leading" secondItem="safe" secondAttribute="leading" constant="20" id="rule-l"/>
+                            <constraint firstItem="safe" firstAttribute="trailing" secondItem="rule" secondAttribute="trailing" constant="20" id="rule-r"/>
+                            <constraint firstItem="safe" firstAttribute="bottom" secondItem="rule" secondAttribute="bottom" constant="78" id="rule-b"/>
+                            <constraint firstItem="safe" firstAttribute="trailing" secondItem="status" secondAttribute="trailing" constant="20" id="status-r"/>
+                            <constraint firstItem="safe" firstAttribute="bottom" secondItem="status" secondAttribute="bottom" constant="56" id="status-b"/>
+                            <constraint firstItem="dashes" firstAttribute="leading" secondItem="safe" secondAttribute="leading" constant="20" id="dashes-l"/>
+                            <constraint firstItem="rule" firstAttribute="top" secondItem="dashes" secondAttribute="bottom" constant="18" id="dashes-b"/>
+                            <!-- The line box is 0.8 em of min(82% width, 60% height) / 3. -->
+                            <constraint firstItem="dashes" firstAttribute="height" relation="lessThanOrEqual" secondItem="root" secondAttribute="width" multiplier="0.21866667" id="dashes-maxw"/>
+                            <constraint firstItem="dashes" firstAttribute="height" relation="lessThanOrEqual" secondItem="root" secondAttribute="height" multiplier="0.16" id="dashes-maxh"/>
+                            <constraint firstItem="dashes" firstAttribute="height" secondItem="root" secondAttribute="height" priority="250" id="dashes-grow"/>
+                        </constraints>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="first" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="0" y="0"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="LaunchDashes" width="76.1" height="80"/>
+        <image name="LaunchStatus" width="103.332" height="14"/>
+        <namedColor name="Ink">
+            <color red="0.067" green="0.067" blue="0.067" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+        <namedColor name="Paper">
+            <color red="0.957" green="0.949" blue="0.933" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+        </namedColor>
+    </resources>
+</document>
