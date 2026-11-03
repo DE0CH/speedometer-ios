@@ -51,10 +51,11 @@
                             <constraint firstItem="safe" firstAttribute="bottom" secondItem="status" secondAttribute="bottom" constant="56" id="status-b"/>
                             <constraint firstItem="dashes" firstAttribute="leading" secondItem="safe" secondAttribute="leading" constant="20" id="dashes-l"/>
                             <constraint firstItem="rule" firstAttribute="top" secondItem="dashes" secondAttribute="bottom" constant="18" id="dashes-b"/>
-                            <!-- The line box is 0.8 em of min(82% width, 60% height) / 3. -->
+                            <!-- The line box is 0.8 em of min(82% width, 60% height) / 3: two required caps, and a pull to the full height
+                                 above the image's own size (hugging 250) that stops at the lower cap. -->
                             <constraint firstItem="dashes" firstAttribute="height" relation="lessThanOrEqual" secondItem="root" secondAttribute="width" multiplier="0.21866667" id="dashes-maxw"/>
                             <constraint firstItem="dashes" firstAttribute="height" relation="lessThanOrEqual" secondItem="root" secondAttribute="height" multiplier="0.16" id="dashes-maxh"/>
-                            <constraint firstItem="dashes" firstAttribute="height" secondItem="root" secondAttribute="height" priority="250" id="dashes-grow"/>
+                            <constraint firstItem="dashes" firstAttribute="height" secondItem="root" secondAttribute="height" priority="999" id="dashes-grow"/>
                         </constraints>
                     </view>
                 </viewController>

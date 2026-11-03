@@ -92,6 +92,7 @@ final class Screen: UIViewController {
     /// move with it and the number goes from its old size to the new one on the same clock.
     override func viewWillTransition(to size: CGSize, with coordinator: UIViewControllerTransitionCoordinator) {
         super.viewWillTransition(to: size, with: coordinator)
+        guard view === paper else { return }   // -reference and -launch-screen: no Paper on screen
         paper.turning = true
         coordinator.animate(alongsideTransition: { _ in
             self.paper.setNeedsLayout()

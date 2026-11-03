@@ -285,7 +285,8 @@ private struct Gray {
         guard height > width else { return self }
         var turned = self
         turned.pixels = [UInt8](repeating: 0, count: width * height)
-        for y in 0..<height { for x in 0..<width { turned.pixels[x * height + (height - 1 - y)] = pixels[y * width + x] } }
+        // Landscape left: the screen's top is the grid's right edge, its right side the grid's bottom.
+        for y in 0..<height { for x in 0..<width { turned.pixels[(width - 1 - x) * height + y] = pixels[y * width + x] } }
         return Gray(width: height, height: width, pixels: turned.pixels)
     }
 
