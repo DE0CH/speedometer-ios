@@ -20,9 +20,9 @@ xcrun simctl bootstatus "$UDID" -b > /dev/null
 # The displays the simulator has (iPhone Duo: the outer and the inner one), and any pose control simctl offers.
 # Annotations carry them (and the results below) to the run page, where they read without a log download.
 note() { local t=$1; shift; local m; m=$(head -c 3500 || true); m=${m//'%'/'%25'}; m=${m//$'\n'/'%0A'}; echo "::notice title=$DEVICE $t::$m"; }
-{ xcrun simctl io "$UDID" enumerate 2>&1 | head -60; } | note "displays"
+{ xcrun simctl io "$UDID" enumerate 2>&1 | grep -E "Default (width|height)" | paste - - || true; } | note "displays"
 { xcrun simctl help 2>&1 | grep -iE "pose|hinge|fold|posture|display" || echo "(no pose, hinge or fold command in simctl help)"
-  echo "-- simctl ui:"; xcrun simctl ui 2>&1 | head -40; } | note "simctl pose commands"
+  echo "-- simctl ui options:"; { xcrun simctl ui 2>&1 || true; } | grep -E "^    [a-z_]+$" || true; } | note "simctl pose commands"
 xcrun simctl ui "$UDID" appearance "$APPEARANCE" 2>&1 | note "appearance $APPEARANCE" || true
 xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiBars 3 --cellularBars 4 --batteryState charged --batteryLevel 100 || true
 # Location permission up front; the test also answers the prompt if it shows.
