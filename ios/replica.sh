@@ -3,6 +3,7 @@
 # those in $TESTS. Writes $RUNNER_TEMP/test.log and $RUNNER_TEMP/screens (screenshots, replica.mp4); exits non-zero
 # unless the tests pass. Run from ios/ after xcodegen, by .github/workflows/ios.yml.
 set -eo pipefail
+trap 'echo "::error title=${DEVICE:-replica}::line $LINENO: $BASH_COMMAND exited $?"' ERR
 UDID=$(xcrun simctl list devices available -j | python3 -c "
 import json,sys,re
 d=json.load(sys.stdin)['devices']
@@ -22,7 +23,7 @@ note() { local t=$1; shift; local m; m=$(head -c 3500 || true); m=${m//'%'/'%25'
 { xcrun simctl io "$UDID" enumerate 2>&1 | head -60; } | note "displays"
 { xcrun simctl help 2>&1 | grep -iE "pose|hinge|fold|posture|display" || echo "(no pose, hinge or fold command in simctl help)"
   echo "-- simctl ui:"; xcrun simctl ui 2>&1 | head -40; } | note "simctl pose commands"
-xcrun simctl ui "$UDID" appearance "$APPEARANCE"
+xcrun simctl ui "$UDID" appearance "$APPEARANCE" 2>&1 | note "appearance $APPEARANCE" || true
 xcrun simctl status_bar "$UDID" override --time 9:41 --dataNetwork wifi --wifiBars 3 --cellularBars 4 --batteryState charged --batteryLevel 100 || true
 # Location permission up front; the test also answers the prompt if it shows.
 xcrun simctl privacy "$UDID" grant location dev.de0ch.speedometer || true
