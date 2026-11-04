@@ -45,7 +45,6 @@ targets:
                 UISceneDelegateClassName: $(PRODUCT_MODULE_NAME).SceneDelegate
         UIStatusBarHidden: true
         UIViewControllerBasedStatusBarAppearance: false
-        UIRequiresFullScreen: true
         UISupportedInterfaceOrientations:
           [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft,
            UIInterfaceOrientationLandscapeRight]   # upside down too: the iPhone Duo is held either way up
