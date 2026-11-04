@@ -87,18 +87,18 @@ final class SpeedometerUITests: XCTestCase {
             func shows(_ text: String) -> Bool { app.staticTexts[text].exists }
             func take(_ name: String) {
                 _ = wait(1.5) { false }   // let any size change finish
-                shots[wide(app, name), default: [:]][mode] = XCUIScreen.main.screenshot()
+                shots[wide(app, name), default: [:]][mode] = screenshot(app)
             }
             XCTAssertTrue(wait(10) { shows("KM/H") || shows("MPH") }, "\(mode): no unit")
-            if shows("MPH") { app.tap() }
+            if shows("MPH") { toggle(app) }
 
             drive(24.17)
             XCTAssertTrue(wait(15) { shows("87") }, "\(mode) 87: \(texts(app))")
             take("87")
-            app.tap()
+            toggle(app)
             XCTAssertTrue(wait(5) { shows("54") }, "\(mode) 54: \(texts(app))")
             take("54-mph")
-            app.tap()
+            toggle(app)
             XCTAssertTrue(wait(5) { shows("87") })
             drive(35.56)
             XCTAssertTrue(wait(15) { shows("128") }, "\(mode) 128: \(texts(app))")
@@ -145,7 +145,7 @@ final class SpeedometerUITests: XCTestCase {
             func shows(_ text: String) -> Bool { app.staticTexts[text].exists }
             func size() -> CGSize { app.windows.firstMatch.frame.size }
             XCTAssertTrue(wait(10) { shows("KM/H") || shows("MPH") }, "\(mode): no unit")
-            if shows("MPH") { app.tap() }
+            if shows("MPH") { toggle(app) }
             drive(24.17)
             XCTAssertTrue(wait(15) { shows("87") }, "\(mode) 87: \(texts(app))")
             if mode == "paper" {
@@ -157,7 +157,7 @@ final class SpeedometerUITests: XCTestCase {
                 print("DUO \(mode) open \(size())")
                 XCTAssertTrue(shows("87"), "opened: \(texts(app))")
                 shot(app, "duo-opened")
-                shots[wide(app, "87-duo-opened"), default: [:]][mode] = XCUIScreen.main.screenshot()
+                shots[wide(app, "87-duo-opened"), default: [:]][mode] = screenshot(app)
                 print("POSE closed \(Date().timeIntervalSince1970)")
                 try pose("closed")
                 XCTAssertTrue(wait(15) { size().width < 500 }, "closed: the app stays \(size())")
@@ -170,7 +170,7 @@ final class SpeedometerUITests: XCTestCase {
                 XCTAssertTrue(wait(15) { size().width > 900 }, "opened again: the app stays \(size())")
             } else {
                 _ = wait(2) { false }
-                shots[wide(app, "87-duo-opened"), default: [:]][mode] = XCUIScreen.main.screenshot()
+                shots[wide(app, "87-duo-opened"), default: [:]][mode] = screenshot(app)
             }
             driving = nil
             app.terminate()
@@ -217,10 +217,10 @@ final class SpeedometerUITests: XCTestCase {
                 _ = wait(3) { false }   // the home indicator fades, any size change finishes
             }
             ready()
-            shots[wide(app, "waiting"), default: [:]][mode] = XCUIScreen.main.screenshot()
+            shots[wide(app, "waiting"), default: [:]][mode] = screenshot(app)
             XCUIDevice.shared.orientation = .landscapeLeft
             ready()
-            if turned(app) { shots["waiting-landscape", default: [:]][mode] = XCUIScreen.main.screenshot() }
+            if turned(app) { shots["waiting-landscape", default: [:]][mode] = screenshot(app) }
             XCUIDevice.shared.orientation = .portrait
             app.terminate()
         }
@@ -267,6 +267,25 @@ final class SpeedometerUITests: XCTestCase {
                           && abs(x.maxY - y.maxY) <= px, "\(name): \(part) at \(x) natively, \(y) in the \(against)")
         }
         XCTAssertLessThan(share, 0.003, "\(name): \(share * 100)% of pixels differ")
+    }
+
+    /// The display the app is on: the iPhone Duo has two, and XCUIScreen.main is the outer one, black while the Duo is
+    /// open and the app is on the inner display (the larger screen).
+    private func screenshot(_ app: XCUIApplication) -> XCUIScreenshot {
+        let frame = app.windows.firstMatch.frame
+        guard XCUIScreen.screens.count > 1, frame.width > 900 || frame.height > 900 else { return XCUIScreen.main.screenshot() }
+        return XCUIScreen.screens.map { $0.screenshot() }.max { a, b in
+            a.image.size.width * a.image.size.height < b.image.size.width * b.image.size.height }!
+    }
+
+    /// Tap: km/h <-> mph. On the open iPhone Duo an element tap can miss the inner display; a coordinate tap in the
+    /// window follows if the unit didn't change.
+    private func toggle(_ app: XCUIApplication) {
+        let mph = app.staticTexts["MPH"].exists
+        app.tap()
+        if wait(2, { app.staticTexts["MPH"].exists != mph }) { return }
+        print("TAP missed: a coordinate tap in \(app.windows.firstMatch.frame)")
+        app.windows.firstMatch.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.4)).tap()
     }
 
     /// The shot's name, marked landscape when the app is already wider than tall (the open iPhone Duo, whose inner
@@ -332,7 +351,7 @@ final class SpeedometerUITests: XCTestCase {
     }
 
     private func shot(_ app: XCUIApplication, _ name: String) {
-        let a = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        let a = XCTAttachment(screenshot: screenshot(app))
         a.name = name
         a.lifetime = .keepAlways
         add(a)
