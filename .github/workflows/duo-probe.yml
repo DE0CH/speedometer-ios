@@ -1,0 +1,52 @@
+# Finds how the iPhone Duo simulator's hinge is driven on a GitHub runner (Xcode 27.1): the private simulator frameworks'
+# and Device Hub's fold/hinge/posture symbols, simctl's full command list, and Device Hub's accessibility tree.
+name: duo-probe
+on: { workflow_dispatch: {} }
+permissions: { contents: read }
+defaults:
+  run:
+    shell: bash -o pipefail {0}
+jobs:
+  probe:
+    runs-on: xcode-27
+    timeout-minutes: 30
+    steps:
+      - name: Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_27.1*.app | sort | tail -1)"; xcodebuild -version
+          DEV="$(xcode-select -p)"; echo "DEV=$DEV" >> "$GITHUB_ENV"
+          ls "$DEV/Applications" /Applications | head -60
+      - name: Symbols
+        run: |
+          OUT="$RUNNER_TEMP/probe"; mkdir -p "$OUT"
+          for f in /Library/Developer/PrivateFrameworks/CoreSimulator.framework/CoreSimulator \
+                   "$DEV"/Library/PrivateFrameworks/SimulatorKit.framework/SimulatorKit \
+                   "$DEV"/Library/PrivateFrameworks/*.framework/* "$DEV"/Applications/*.app/Contents/MacOS/* \
+                   "$DEV"/Applications/*.app/Contents/Frameworks/*.framework/*; do
+            [ -f "$f" ] && file "$f" | grep -q Mach-O || continue
+            m=$(strings -a "$f" | grep -iE 'hinge|posture|fold(ed|State|Angle)|unfold' | sort -u | head -80)
+            [ -n "$m" ] && { echo "=== $f"; echo "$m"; } | tee -a "$OUT/symbols.txt"
+          done
+          find /Applications "$DEV" -maxdepth 4 -iname '*hub*' 2>/dev/null | head
+      - name: simctl
+        run: |
+          OUT="$RUNNER_TEMP/probe"
+          xcrun simctl help 2>&1 | tee "$OUT/simctl-help.txt"
+          for c in io ui spawn; do echo "--- $c"; xcrun simctl $c 2>&1 | head -40; done | tee -a "$OUT/simctl-help.txt"
+          UDID=$(xcrun simctl list devices available -j | python3 -c "import json,sys;print([d['udid'] for r in json.load(sys.stdin)['devices'].values() for d in r if d['name']=='iPhone Duo'][0])")
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl io "$UDID" enumerate 2>&1 | tee "$OUT/io.txt"
+          xcrun simctl spawn "$UDID" launchctl list 2>&1 | grep -iE 'hinge|fold|posture|sensor|backboard' | tee "$OUT/launchd.txt"
+      - name: Device Hub accessibility
+        run: |
+          OUT="$RUNNER_TEMP/probe"
+          open -a Simulator --args -CurrentDeviceUDID "$UDID" || true
+          for app in "Device Hub" DeviceHub Simulator; do open -a "$app" 2>&1; done; sleep 20
+          osascript -e 'tell application "System Events" to get name of every process whose background only is false' 2>&1 | tee "$OUT/ax.txt"
+          osascript -e 'tell application "System Events" to tell (first process whose name contains "Hub" or name is "Simulator") to get entire contents of window 1' 2>&1 | tr ',' '\n' | head -400 | tee -a "$OUT/ax.txt"
+          osascript -e 'tell application "System Events" to tell (first process whose name contains "Hub" or name is "Simulator") to get name of every menu item of every menu of menu bar 1' 2>&1 | tr ',' '\n' | tee -a "$OUT/ax.txt"
+          screencapture -x "$OUT/screen.png" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: duo-probe, path: "${{ runner.temp }}/probe" }
