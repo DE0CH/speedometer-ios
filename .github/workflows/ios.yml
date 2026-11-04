@@ -96,6 +96,12 @@ jobs:
           APPEARANCE: light
           TESTS: testLaunchScreenMatchesWaiting testMatchesReference
         run: ./replica.sh
+      - name: The real launch screen (upright)
+        if: always() && matrix.device != 'iPhone Duo'
+        timeout-minutes: 5
+        env:
+          DEVICE: ${{ matrix.device }}
+        run: ./launch-capture.sh
       - name: Keep the screenshots and log
         if: always()
         continue-on-error: true
@@ -105,6 +111,7 @@ jobs:
           path: |
             ${{ runner.temp }}/screens/*.png
             ${{ runner.temp }}/test.log
+            ${{ runner.temp }}/launch
           if-no-files-found: ignore
   # The iPhone Duo opened and closed under the running app (Device Hub's pose buttons, ios/duo-host.sh), then the launch
   # screen and the HTML comparisons in the open pose (951 x 669 pt).

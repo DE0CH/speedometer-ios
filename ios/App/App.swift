@@ -87,6 +87,9 @@ final class Screen: UIViewController {
 
     override var prefersStatusBarHidden: Bool { true }
     override var prefersHomeIndicatorAutoHidden: Bool { true }
+    /// Every way up, upside down included (UIKit's iPhone default leaves it out): the iPhone Duo is held either way, and
+    /// its safe area moves with the turn.
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .all }
 
     /// The rotation: everything is laid out again inside iOS's own animation for the turn, so the rule and the unit row
     /// move with it and the number goes from its old size to the new one on the same clock.

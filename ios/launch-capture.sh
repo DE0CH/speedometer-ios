@@ -5,7 +5,8 @@
 # (the app is installed), with Device Hub open (duo-host.sh). Writes $RUNNER_TEMP/launch/.
 set -eo pipefail
 OUT="$RUNNER_TEMP/launch"; mkdir -p "$OUT"
-UDID=$(xcrun simctl list devices booted -j | python3 -c "import json,sys;print([d['udid'] for r in json.load(sys.stdin)['devices'].values() for d in r if d['name']=='iPhone Duo'][0])")
+DEVICE=${DEVICE:-iPhone Duo}
+UDID=$(xcrun simctl list devices booted -j | python3 -c "import json,sys;print([d['udid'] for r in json.load(sys.stdin)['devices'].values() for d in r if d['name']==sys.argv[1]][0])" "$DEVICE")
 APP=dev.de0ch.speedometer
 # Each pose in all four orientations (Device Hub's Rotate turns the device a quarter clockwise; the Duo's safe area
 # moves with it), then once more upright for iOS's cached launch snapshot.
@@ -20,6 +21,7 @@ capture() {   # name display
   wait $mac 2>/dev/null || true
   xcrun simctl io "$UDID" screenshot --display="$2" "$OUT/$1-after.png" > /dev/null 2>&1 || true
 }
+if [ "$DEVICE" != "iPhone Duo" ]; then capture upright primary; capture upright-again primary; ls -la "$OUT"; exit 0; fi
 for pose in closed open; do
   ./duo-host.sh "$pose"; sleep 8
   display=$([ "$pose" = open ] && echo primary-1 || echo primary)

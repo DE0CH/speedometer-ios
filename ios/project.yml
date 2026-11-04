@@ -47,7 +47,8 @@ targets:
         UIViewControllerBasedStatusBarAppearance: false
         UIRequiresFullScreen: true
         UISupportedInterfaceOrientations:
-          [UIInterfaceOrientationPortrait, UIInterfaceOrientationLandscapeLeft, UIInterfaceOrientationLandscapeRight]
+          [UIInterfaceOrientationPortrait, UIInterfaceOrientationPortraitUpsideDown, UIInterfaceOrientationLandscapeLeft,
+           UIInterfaceOrientationLandscapeRight]   # upside down too: the iPhone Duo is held either way up
         LSRequiresIPhoneOS: true
   SpeedometerUITests:
     type: bundle.ui-testing
