@@ -124,6 +124,20 @@ jobs:
           DUO_HOST: "1"
           TESTS: testDuoOpens testLaunchScreenMatchesWaiting testMatchesReference
         run: ./replica.sh
+      - name: The real launch screen, closed and open, in each orientation
+        if: always()
+        timeout-minutes: 15
+        run: |
+          ./duo-host.sh start > "$RUNNER_TEMP/duo-host2.log" 2>&1 &   # reopens Device Hub if it closed
+          sleep 25; ./launch-capture.sh
+      - name: Keep the launch videos
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: duo-launch
+          path: ${{ runner.temp }}/launch
+          if-no-files-found: ignore
       - name: Keep the screenshots, videos and log
         if: always()
         continue-on-error: true
