@@ -38,15 +38,32 @@ jobs:
           xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b
           xcrun simctl io "$UDID" enumerate 2>&1 | tee "$OUT/io.txt"
           xcrun simctl spawn "$UDID" launchctl list 2>&1 | grep -iE 'hinge|fold|posture|sensor|backboard' | tee "$OUT/launchd.txt"
-      - name: Device Hub accessibility
+      - name: Device Hub, open the Duo
         run: |
           OUT="$RUNNER_TEMP/probe"
-          open -a Simulator --args -CurrentDeviceUDID "$UDID" || true
-          for app in "Device Hub" DeviceHub Simulator; do open -a "$app" 2>&1; done; sleep 20
-          osascript -e 'tell application "System Events" to get name of every process whose background only is false' 2>&1 | tee "$OUT/ax.txt"
-          osascript -e 'tell application "System Events" to tell (first process whose name contains "Hub" or name is "Simulator") to get entire contents of window 1' 2>&1 | tr ',' '\n' | head -400 | tee -a "$OUT/ax.txt"
-          osascript -e 'tell application "System Events" to tell (first process whose name contains "Hub" or name is "Simulator") to get name of every menu item of every menu of menu bar 1' 2>&1 | tr ',' '\n' | tee -a "$OUT/ax.txt"
-          screencapture -x "$OUT/screen.png" || true
+          open -a "$DEV/../Applications/DeviceHub.app"; sleep 25
+          screencapture -x "$OUT/0-closed.png"
+          ax() { osascript -e "tell application \"System Events\" to tell process \"DeviceHub\" to $1" 2>&1 | tr ',' '\n' | head -${2:-300}; }
+          { echo "-- windows"; ax "get name of every window"
+            echo "-- menus"; ax "get name of every menu item of every menu of menu bar 1"
+            echo "-- device menu"; ax "get {name, value of attribute \"AXMenuItemCmdChar\", value of attribute \"AXMenuItemCmdModifiers\"} of every menu item of menu \"Device\" of menu bar 1"
+            echo "-- buttons"; ax "get {description, name, help} of every button of every group of every group of window 1" 600
+            echo "-- all"; ax "get entire contents of window 1" 800; } > "$OUT/ax.txt"
+          # click Open by its AX description if found, else by position (the third pose button in the screenshot)
+          ax 'click (first button of entire contents of window 1 whose description is "Open")' > "$OUT/click-ax.txt"
+          sleep 6; screencapture -x "$OUT/1-after-ax.png"
+          xcrun simctl io "$UDID" screenshot --display=primary "$OUT/sim-primary.png" 2>&1 | tail -2
+          cat > "$RUNNER_TEMP/click.swift" <<'SWIFT'
+          import CoreGraphics; import Foundation
+          let x = Double(CommandLine.arguments[1])!, y = Double(CommandLine.arguments[2])!
+          for t in [CGEventType.leftMouseDown, .leftMouseUp] {
+            CGEvent(mouseEventSource: nil, mouseType: t, mouseCursorPosition: CGPoint(x: x, y: y), mouseButton: .left)!.post(tap: .cghidEventTap)
+            usleep(80000) }
+          SWIFT
+          swiftc -o "$RUNNER_TEMP/click" "$RUNNER_TEMP/click.swift" && "$RUNNER_TEMP/click" 743 679
+          sleep 6; screencapture -x "$OUT/2-after-click.png"
+          for d in primary primary-1 external; do xcrun simctl io "$UDID" screenshot --display=$d "$OUT/sim-$d.png" 2>&1 | tail -1; done
+          sips -g pixelWidth -g pixelHeight "$OUT"/sim-*.png
       - uses: actions/upload-artifact@v4
         if: always()
         with: { name: duo-probe, path: "${{ runner.temp }}/probe" }
