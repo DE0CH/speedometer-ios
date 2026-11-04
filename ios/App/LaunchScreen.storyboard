@@ -40,15 +40,100 @@
                                     <constraint firstAttribute="width" secondItem="dashes" secondAttribute="height" multiplier="76.1:80" id="dashes-aspect"/>
                                 </constraints>
                             </imageView>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="g1">
+                                <rect key="frame" x="0.0" y="0.0" width="0.0" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" id="g1-o0"/>
+                                </constraints>
+                            </view>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="g2">
+                                <rect key="frame" x="0.0" y="0.0" width="0.0" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" id="g2-o0"/>
+                                </constraints>
+                            </view>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bw">
+                                <rect key="frame" x="0.0" y="0.0" width="0.0" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" id="bw-o0"/>
+                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" id="bw-o1"/>
+                                    <constraint firstAttribute="width" relation="lessThanOrEqual" constant="34" id="bw-o2"/>
+                                    <constraint firstAttribute="width" priority="500" constant="34" id="bw-o3"/>
+                                </constraints>
+                            </view>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="g3">
+                                <rect key="frame" x="0.0" y="0.0" width="0.0" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" id="g3-o0"/>
+                                </constraints>
+                            </view>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="g4">
+                                <rect key="frame" x="0.0" y="0.0" width="0.0" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" id="g4-o0"/>
+                                </constraints>
+                            </view>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bh">
+                                <rect key="frame" x="0.0" y="0.0" width="0.0" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" id="bh-o0"/>
+                                    <constraint firstAttribute="height" relation="greaterThanOrEqual" id="bh-o1"/>
+                                    <constraint firstAttribute="height" relation="lessThanOrEqual" constant="34" id="bh-o2"/>
+                                    <constraint firstAttribute="height" priority="500" constant="34" id="bh-o3"/>
+                                </constraints>
+                            </view>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="duo">
+                                <rect key="frame" x="0.0" y="0.0" width="0.0" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" id="duo-o0"/>
+                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" id="duo-o1"/>
+                                    <constraint firstAttribute="width" priority="500" constant="34" id="duo-o2"/>
+                                </constraints>
+                            </view>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="g5">
+                                <rect key="frame" x="0.0" y="0.0" width="0.0" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" id="g5-o0"/>
+                                </constraints>
+                            </view>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="g6">
+                                <rect key="frame" x="0.0" y="0.0" width="0.0" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" id="g6-o0"/>
+                                </constraints>
+                            </view>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="cw">
+                                <rect key="frame" x="0.0" y="0.0" width="0.0" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" id="cw-o0"/>
+                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" id="cw-o1"/>
+                                    <constraint firstAttribute="width" relation="lessThanOrEqual" constant="84" id="cw-o2"/>
+                                    <constraint firstAttribute="width" priority="500" constant="84" id="cw-o3"/>
+                                </constraints>
+                            </view>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="rail">
+                                <rect key="frame" x="0.0" y="0.0" width="0.0" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" id="rail-o0"/>
+                                    <constraint firstAttribute="width" relation="greaterThanOrEqual" id="rail-o1"/>
+                                    <constraint firstAttribute="width" priority="500" constant="84" id="rail-o2"/>
+                                </constraints>
+                            </view>
+                            <view hidden="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bot">
+                                <rect key="frame" x="0.0" y="0.0" width="0.0" height="0.0"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" id="bot-o0"/>
+                                </constraints>
+                            </view>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="safe"/>
                         <color key="backgroundColor" name="Paper"/>
                         <constraints>
                             <constraint firstItem="rule" firstAttribute="leading" secondItem="safe" secondAttribute="leading" constant="20" id="rule-l"/>
-                            <constraint firstItem="safe" firstAttribute="trailing" secondItem="rule" secondAttribute="trailing" constant="20" id="rule-r"/>
-                            <constraint firstItem="safe" firstAttribute="bottom" secondItem="rule" secondAttribute="bottom" constant="78" id="rule-b"/>
-                            <constraint firstItem="safe" firstAttribute="trailing" secondItem="status" secondAttribute="trailing" constant="20" id="status-r"/>
-                            <constraint firstItem="safe" firstAttribute="bottom" secondItem="status" secondAttribute="bottom" constant="56" id="status-b"/>
+                            <constraint firstItem="safe" firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="rule" secondAttribute="trailing" constant="20" id="rule-r"/>
+                            <constraint firstItem="safe" firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="rule" secondAttribute="bottom" constant="78" id="rule-b"/>
+                            <constraint firstItem="safe" firstAttribute="trailing" relation="greaterThanOrEqual" secondItem="status" secondAttribute="trailing" constant="20" id="status-r"/>
+                            <constraint firstItem="safe" firstAttribute="bottom" relation="greaterThanOrEqual" secondItem="status" secondAttribute="bottom" constant="56" id="status-b"/>
                             <constraint firstItem="dashes" firstAttribute="leading" secondItem="safe" secondAttribute="leading" constant="20" id="dashes-l"/>
                             <constraint firstItem="rule" firstAttribute="top" secondItem="dashes" secondAttribute="bottom" constant="18" id="dashes-b"/>
                             <!-- The line box is 0.8 em of min(82% width, 60% height) / 3: two required caps, and a pull to the full height
@@ -56,6 +141,61 @@
                             <constraint firstItem="dashes" firstAttribute="height" relation="lessThanOrEqual" secondItem="root" secondAttribute="width" multiplier="0.21866667" id="dashes-maxw"/>
                             <constraint firstItem="dashes" firstAttribute="height" relation="lessThanOrEqual" secondItem="root" secondAttribute="height" multiplier="0.16" id="dashes-maxh"/>
                             <constraint firstItem="dashes" firstAttribute="height" secondItem="root" secondAttribute="height" priority="999" id="dashes-grow"/>
+                            <!-- The iPhone Duo lays its launch screen out with no safe area (2026-11-04, Xcode 27.1 simulator): no 34 pt
+                                 above the home indicator, and closed, no 84 pt status rail on the trailing side, which the app keeps
+                                 clear. A launch screen runs no code, so hidden helper views tell the Duo by its shape: "duo" is 34 pt
+                                 wide when width/height is between 0.6 and 1.67 (no iPhone, either way up; bw/bh are min(34,
+                                 10W - 6H) and min(34, 10H - 6W)), else 0; "rail" is 84 pt when it is a Duo with W + H under 1400 pt
+                                 (closed: 1144; open: 1620), else 0. "bot" (duo high) and "rail" sit on the bottom and trailing edges;
+                                 the rule and the status line stay inside both them and the safe area. On an iPhone both are 0 and
+                                 the safe area alone places them, as before. Closed and turned, the rail is on the leading side in one
+                                 landscape; this keeps the trailing side. -->
+                            <constraint firstItem="g1" firstAttribute="leading" secondItem="root" secondAttribute="leading" id="g1-l"/>
+                            <constraint firstItem="g1" firstAttribute="width" secondItem="root" secondAttribute="width" multiplier="10" id="g1-w"/>
+                            <constraint firstItem="g1" firstAttribute="top" secondItem="root" secondAttribute="top" id="g1-t"/>
+                            <constraint firstItem="g2" firstAttribute="trailing" secondItem="g1" secondAttribute="trailing" id="g2-r"/>
+                            <constraint firstItem="g2" firstAttribute="width" secondItem="root" secondAttribute="height" multiplier="6" id="g2-w"/>
+                            <constraint firstItem="g2" firstAttribute="top" secondItem="root" secondAttribute="top" id="g2-t"/>
+                            <constraint firstItem="bw" firstAttribute="leading" secondItem="root" secondAttribute="leading" id="bw-l"/>
+                            <constraint firstItem="bw" firstAttribute="top" secondItem="root" secondAttribute="top" id="bw-t"/>
+                            <constraint firstItem="g2" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="bw" secondAttribute="trailing" priority="999" id="bw-x"/>
+                            <constraint firstItem="g3" firstAttribute="top" secondItem="root" secondAttribute="top" id="g3-t"/>
+                            <constraint firstItem="g3" firstAttribute="height" secondItem="root" secondAttribute="height" multiplier="10" id="g3-h"/>
+                            <constraint firstItem="g3" firstAttribute="leading" secondItem="root" secondAttribute="leading" id="g3-l"/>
+                            <constraint firstItem="g4" firstAttribute="bottom" secondItem="g3" secondAttribute="bottom" id="g4-b"/>
+                            <constraint firstItem="g4" firstAttribute="height" secondItem="root" secondAttribute="width" multiplier="6" id="g4-h"/>
+                            <constraint firstItem="g4" firstAttribute="leading" secondItem="root" secondAttribute="leading" id="g4-l"/>
+                            <constraint firstItem="bh" firstAttribute="top" secondItem="root" secondAttribute="top" id="bh-t"/>
+                            <constraint firstItem="bh" firstAttribute="leading" secondItem="root" secondAttribute="leading" id="bh-l"/>
+                            <constraint firstItem="g4" firstAttribute="top" relation="greaterThanOrEqual" secondItem="bh" secondAttribute="bottom" priority="999" id="bh-x"/>
+                            <constraint firstItem="duo" firstAttribute="leading" secondItem="root" secondAttribute="leading" id="duo-l"/>
+                            <constraint firstItem="duo" firstAttribute="top" secondItem="root" secondAttribute="top" id="duo-t"/>
+                            <constraint firstItem="bw" firstAttribute="width" relation="greaterThanOrEqual" secondItem="duo" secondAttribute="width" id="duo-w"/>
+                            <constraint firstItem="bh" firstAttribute="height" relation="greaterThanOrEqual" secondItem="duo" secondAttribute="width" id="duo-h"/>
+                            <constraint firstItem="g5" firstAttribute="leading" secondItem="root" secondAttribute="leading" id="g5-l"/>
+                            <constraint firstItem="g5" firstAttribute="width" secondItem="root" secondAttribute="width" id="g5-w"/>
+                            <constraint firstItem="g5" firstAttribute="top" secondItem="root" secondAttribute="top" id="g5-t"/>
+                            <constraint firstItem="g6" firstAttribute="leading" secondItem="g5" secondAttribute="trailing" id="g6-l"/>
+                            <constraint firstItem="g6" firstAttribute="width" secondItem="root" secondAttribute="height" id="g6-w"/>
+                            <constraint firstItem="g6" firstAttribute="top" secondItem="root" secondAttribute="top" id="g6-t"/>
+                            <constraint firstItem="cw" firstAttribute="leading" secondItem="g6" secondAttribute="trailing" id="cw-l"/>
+                            <constraint firstItem="cw" firstAttribute="top" secondItem="root" secondAttribute="top" id="cw-t"/>
+                            <constraint firstItem="root" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="cw" secondAttribute="trailing" priority="999" constant="-1400" id="cw-x"/>
+                            <constraint firstItem="rail" firstAttribute="trailing" secondItem="root" secondAttribute="trailing" id="rail-r"/>
+                            <constraint firstItem="rail" firstAttribute="top" secondItem="root" secondAttribute="top" id="rail-t"/>
+                            <constraint firstItem="cw" firstAttribute="width" relation="greaterThanOrEqual" secondItem="rail" secondAttribute="width" id="rail-c"/>
+                            <constraint firstItem="duo" firstAttribute="width" relation="greaterThanOrEqual" secondItem="rail" secondAttribute="width" multiplier="0.4047619" id="rail-d"/>
+                            <constraint firstItem="bot" firstAttribute="bottom" secondItem="root" secondAttribute="bottom" id="bot-b"/>
+                            <constraint firstItem="bot" firstAttribute="leading" secondItem="root" secondAttribute="leading" id="bot-l"/>
+                            <constraint firstItem="bot" firstAttribute="height" secondItem="duo" secondAttribute="width" id="bot-h"/>
+                            <constraint firstItem="rail" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="rule" secondAttribute="trailing" constant="20" id="rule-rail"/>
+                            <constraint firstItem="bot" firstAttribute="top" relation="greaterThanOrEqual" secondItem="rule" secondAttribute="bottom" constant="78" id="rule-bot"/>
+                            <constraint firstItem="rail" firstAttribute="leading" relation="greaterThanOrEqual" secondItem="status" secondAttribute="trailing" constant="20" id="status-rail"/>
+                            <constraint firstItem="bot" firstAttribute="top" relation="greaterThanOrEqual" secondItem="status" secondAttribute="bottom" constant="56" id="status-bot"/>
+                            <constraint firstItem="root" firstAttribute="trailing" secondItem="rule" secondAttribute="trailing" priority="250" id="rule-pr"/>
+                            <constraint firstItem="root" firstAttribute="bottom" secondItem="rule" secondAttribute="bottom" priority="250" id="rule-pb"/>
+                            <constraint firstItem="root" firstAttribute="trailing" secondItem="status" secondAttribute="trailing" priority="250" id="status-pr"/>
+                            <constraint firstItem="root" firstAttribute="bottom" secondItem="status" secondAttribute="bottom" priority="250" id="status-pb"/>
                         </constraints>
                     </view>
                 </viewController>
