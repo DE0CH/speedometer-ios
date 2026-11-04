@@ -47,7 +47,7 @@ xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$RUNNER_TEMP/screens/r
 xcodebuild test-without-building "${COMMON[@]}" "${ONLY[@]}" -resultBundlePath "$RUNNER_TEMP/ui.xcresult" \
   -test-timeouts-enabled YES -maximum-test-execution-time-allowance 600 > "$RUNNER_TEMP/test.log" 2>&1 || true
 kill $WATCHDOG 2>/dev/null || true
-[ -z "${MACREC:-}" ] || { kill -INT $MACREC 2>/dev/null; wait $MACREC 2>/dev/null || true; }
+[ -z "${MACREC:-}" ] || { kill -INT $MACREC 2>/dev/null || true; wait $MACREC 2>/dev/null || true; }   # it may have stopped at its -V
 [ -z "${DUOHOST:-}" ] || { kill $DUOHOST 2>/dev/null || true; cat "$RUNNER_TEMP/duo-host.log"; }
 kill -INT $RECORDER 2>/dev/null || true; wait $RECORDER 2>/dev/null || true
 tail -25 "$RUNNER_TEMP/test.log"
