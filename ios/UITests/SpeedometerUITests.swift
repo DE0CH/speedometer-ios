@@ -63,7 +63,7 @@ final class SpeedometerUITests: XCTestCase {
         // The unit choice survives a relaunch.
         app.tap()
         XCTAssertTrue(wait(5) { shows("MPH") })
-        app.terminate()
+        end(app)
         app.launch()
         XCTAssertTrue(wait(10) { shows("MPH") }, "mph not remembered: \(texts(app))")
     }
@@ -116,7 +116,7 @@ final class SpeedometerUITests: XCTestCase {
             driving = nil
             XCTAssertTrue(wait(30) { shows("FINDING GPS") }, "\(mode) stale: \(texts(app))")
             take("finding-gps")
-            app.terminate()
+            end(app)
         }
         for (name, pair) in shots.sorted(by: { $0.key < $1.key }) {
             guard let paper = pair["paper"], let html = pair["html"] else { XCTFail("\(name): missing a screenshot"); continue }
@@ -173,7 +173,7 @@ final class SpeedometerUITests: XCTestCase {
                 shots[wide(app, "87-duo-opened"), default: [:]][mode] = screenshot(app)
             }
             driving = nil
-            app.terminate()
+            end(app)
         }
         for (name, pair) in shots.sorted(by: { $0.key < $1.key }) {
             guard let paper = pair["paper"], let html = pair["html"] else { XCTFail("\(name): missing a screenshot"); continue }
@@ -222,7 +222,7 @@ final class SpeedometerUITests: XCTestCase {
             ready()
             if turned(app) { shots["waiting-landscape", default: [:]][mode] = screenshot(app) }
             XCUIDevice.shared.orientation = .portrait
-            app.terminate()
+            end(app)
         }
         for (name, pair) in shots.sorted(by: { $0.key < $1.key }) {
             guard let paper = pair["paper"], let launch = pair["launch"] else { XCTFail("\(name): missing a screenshot"); continue }
@@ -234,8 +234,13 @@ final class SpeedometerUITests: XCTestCase {
     private func compare(_ name: String, _ paper: XCUIScreenshot, _ html: XCUIScreenshot, against: String = "html",
                          wholeUnitRow: Bool = true) {
         // A landscape screenshot keeps the portrait pixel grid: turn it upright first.
-        let (a, b) = name.contains("landscape") ? (Gray(paper.image).upright(), Gray(html.image).upright())
-                                                : (Gray(paper.image), Gray(html.image))
+        // Which way: a turned phone's grid has the screen's top on the right, the open iPhone Duo's inner display on the
+        // left; the right way up puts the rule in the lower half.
+        var (a, b) = (Gray(paper.image), Gray(html.image))
+        if name.contains("landscape") {
+            let left = a.upright(topLeft: true).ruleRow().map { $0 > a.width / 2 } ?? false
+            (a, b) = (a.upright(topLeft: left), b.upright(topLeft: left))
+        }
         guard a.width == b.width, a.height == b.height else { XCTFail("\(name): sizes differ"); return }
         let (pa, pb) = (a.parts(), b.parts())
         var differ = 0
@@ -267,6 +272,12 @@ final class SpeedometerUITests: XCTestCase {
                           && abs(x.maxY - y.maxY) <= px, "\(name): \(part) at \(x) natively, \(y) in the \(against)")
         }
         XCTAssertLessThan(share, 0.003, "\(name): \(share * 100)% of pixels differ")
+    }
+
+    /// Quits the app. The xcode-27 runners' simulators sometimes refuse ("Failed to terminate"); the next launch
+    /// replaces the app anyway, so that refusal is not the app's failure.
+    private func end(_ app: XCUIApplication) {
+        XCTExpectFailure("the simulator refused to terminate the app", strict: false) { app.terminate() }
     }
 
     /// The display the app is on: the iPhone Duo has two, and XCUIScreen.main is the outer one, black while the Duo is
@@ -378,14 +389,24 @@ private struct Gray {
         }
     }
 
-    /// The landscape screen as it is seen: width and height swapped, if the screenshot came out sideways.
-    func upright() -> Gray {
+    /// The landscape screen as it is seen: width and height swapped, if the screenshot came out sideways. A turned
+    /// phone (landscape left) has the screen's top on the grid's right edge, its right side on the grid's bottom;
+    /// `topLeft` is the other way round.
+    func upright(topLeft: Bool = false) -> Gray {
         guard height > width else { return self }
-        var turned = self
-        turned.pixels = [UInt8](repeating: 0, count: width * height)
-        // Landscape left: the screen's top is the grid's right edge, its right side the grid's bottom.
-        for y in 0..<height { for x in 0..<width { turned.pixels[(width - 1 - x) * height + y] = pixels[y * width + x] } }
-        return Gray(width: height, height: width, pixels: turned.pixels)
+        var turned = [UInt8](repeating: 0, count: width * height)
+        for y in 0..<height {
+            for x in 0..<width {
+                turned[topLeft ? x * height + (height - 1 - y) : (width - 1 - x) * height + y] = pixels[y * width + x]
+            }
+        }
+        return Gray(width: height, height: width, pixels: turned)
+    }
+
+    /// The row of the rule's bottom edge (the lowest row more than half inked).
+    func ruleRow() -> Int? {
+        let paper = Int(pixels[0])
+        return (0..<height).last { y in (0..<width).reduce(0) { $0 + (abs(Int(pixels[y * width + $1]) - paper) > 30 ? 1 : 0) } > width / 2 }
     }
 
     struct Box: CustomStringConvertible {
