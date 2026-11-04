@@ -9,13 +9,14 @@ DEVICE=${DEVICE:-iPhone Duo}
 UDID=$(xcrun simctl list devices booted -j | python3 -c "import json,sys;print([d['udid'] for r in json.load(sys.stdin)['devices'].values() for d in r if d['name']==sys.argv[1]][0])" "$DEVICE")
 APP=dev.de0ch.speedometer
 # Each pose in all four orientations (Device Hub's Rotate turns the device a quarter clockwise; the Duo's safe area
-# moves with it), then once more upright for iOS's cached launch snapshot.
-capture() {   # name display
-  xcrun simctl terminate "$UDID" "$APP" 2>/dev/null || true; sleep 3
+# moves with it), each beside $ALSO (another app, e.g. Settings, for how iOS itself turns) if set, then once more upright for iOS's cached launch snapshot.
+capture() {   # name display [bundle id]
+  local app=${3:-$APP}
+  xcrun simctl terminate "$UDID" "$app" 2>/dev/null || true; sleep 3
   screencapture -v -V 9 -x "$OUT/mac-$1.mov" > /dev/null 2>&1 & local mac=$!
   xcrun simctl io "$UDID" recordVideo --codec=h264 --display="$2" --force "$OUT/$1.mp4" 2>/dev/null & local rec=$!
   sleep 2
-  xcrun simctl launch "$UDID" "$APP" > /dev/null
+  xcrun simctl launch "$UDID" "$app" > /dev/null
   sleep 5
   kill -INT $rec 2>/dev/null || true; wait $rec 2>/dev/null || true
   wait $mac 2>/dev/null || true
@@ -27,6 +28,7 @@ for pose in closed open; do
   display=$([ "$pose" = open ] && echo primary-1 || echo primary)
   for turn in 0 90 180 270; do
     capture "$pose-$turn" "$display"
+    [ -z "${ALSO:-}" ] || { capture "$pose-$turn-also" "$display" "$ALSO"; xcrun simctl terminate "$UDID" "$ALSO" || true; }
     ./duo-host.sh rotate; sleep 4
   done
   capture "$pose-0-again" "$display"

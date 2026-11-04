@@ -1,0 +1,36 @@
+# The real launch on the iPhone Duo alone, without the full replica: builds the app for the simulator, installs it,
+# and records the launch in each pose and turn (ios/launch-capture.sh), Settings beside it for how iOS itself turns.
+# Faster than the ios workflow's duo job when iterating on the launch screen.
+name: duo-launch
+on: { workflow_dispatch: {} }
+permissions: { contents: read }
+defaults:
+  run:
+    shell: bash -eo pipefail {0}
+    working-directory: ios
+jobs:
+  launch:
+    runs-on: xcode-27
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode, xcodegen
+        run: ./xcode.sh
+      - name: Build, boot, install
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "import json,sys;print([d['udid'] for r in json.load(sys.stdin)['devices'].values() for d in r if d['name']=='iPhone Duo'][0])")
+          xcrun simctl boot "$UDID"; xcrun simctl bootstatus "$UDID" -b > /dev/null
+          xcodebuild build -project Speedometer.xcodeproj -scheme Speedometer -configuration Release -destination "id=$UDID" \
+            -derivedDataPath DerivedData ONLY_ACTIVE_ARCH=YES ARCHS=arm64 CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO > "$RUNNER_TEMP/build.log" 2>&1 \
+            || { grep -E "error:" "$RUNNER_TEMP/build.log" | head; exit 1; }
+          APP=$(find DerivedData/Build/Products -maxdepth 2 -name "Speedometer.app" | head -1)
+          plutil -p "$APP/Info.plist" | grep -A6 -E "UISupportedInterfaceOrientations|UIStatusBarHidden|UILaunchStoryboard"
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl privacy "$UDID" grant location dev.de0ch.speedometer || true
+      - name: Record the launches
+        run: |
+          ./duo-host.sh start > "$RUNNER_TEMP/duo-host.log" 2>&1 &
+          sleep 25; ALSO=com.apple.Preferences ./launch-capture.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with: { name: duo-launch, path: "${{ runner.temp }}/launch" }
