@@ -34,11 +34,12 @@ COMMON=(-project Speedometer.xcodeproj -scheme Speedometer -configuration Releas
 xcodebuild build-for-testing "${COMMON[@]}" > "$RUNNER_TEMP/build.log" 2>&1 || true
 grep -E "error:|\*\* TEST BUILD" "$RUNNER_TEMP/build.log" | head -20 || true
 # The iPhone Duo's poses ($DUO_HOST=1): duo-host.sh opens Device Hub and presses its pose buttons when testDuoOpens
-# asks; the Mac's screen is recorded too, where Device Hub draws the device folding with the app on it.
+# asks; the Mac's screen is recorded for the first 240 s (testDuoOpens, which runs first), where Device Hub draws the
+# device folding with the app on it.
 if [ "${DUO_HOST:-}" = 1 ]; then
   ./duo-host.sh start > "$RUNNER_TEMP/duo-host.log" 2>&1 & DUOHOST=$!
   until grep -q serving "$RUNNER_TEMP/duo-host.log" 2>/dev/null; do sleep 1; done
-  screencapture -v -V 900 -x "$RUNNER_TEMP/screens/devicehub.mov" > /dev/null 2>&1 & MACREC=$!
+  screencapture -v -V 240 -x "$RUNNER_TEMP/screens/devicehub.mov" > /dev/null 2>&1 & MACREC=$!
 fi
 # A video of the whole run: the rotations, frame by frame (the test logs "ROTATE <mode> <epoch>").
 python3 -c "import time; print(time.time())" > "$RUNNER_TEMP/screens/video-start.txt"
