@@ -87,7 +87,7 @@ final class SpeedometerUITests: XCTestCase {
             func shows(_ text: String) -> Bool { app.staticTexts[text].exists }
             func take(_ name: String) {
                 _ = wait(1.5) { false }   // let any size change finish
-                shots[name, default: [:]][mode] = XCUIScreen.main.screenshot()
+                shots[wide(app, name), default: [:]][mode] = XCUIScreen.main.screenshot()
             }
             XCTAssertTrue(wait(10) { shows("KM/H") || shows("MPH") }, "\(mode): no unit")
             if shows("MPH") { app.tap() }
@@ -124,6 +124,78 @@ final class SpeedometerUITests: XCTestCase {
         }
     }
 
+    /// The iPhone Duo opening and closing under a running app (ios/duo-host.sh presses Device Hub's pose buttons when
+    /// asked; skipped elsewhere). Closed at 87 km/h, opened: the app must take the 951 x 669 pt inner display and lay the
+    /// screen out as the HTML does there; closed again: back on the outer display. It leaves the Duo open, so the tests
+    /// after it in this run (alphabetical: the launch screen, the HTML) compare in the open pose.
+    func testDuoOpens() throws {
+        guard FileManager.default.fileExists(atPath: Self.duoDir) else { throw XCTSkip("no duo-host.sh on this run") }
+        try pose("closed")
+        var shots: [String: [String: XCUIScreenshot]] = [:]
+        for mode in ["paper", "html"] {
+            let app = XCUIApplication()
+            app.launchArguments = mode == "html" ? ["-reference"] : []
+            addUIInterruptionMonitor(withDescription: "location") { alert in
+                guard alert.buttons["Allow While Using App"].exists else { return false }
+                alert.buttons["Allow While Using App"].tap()
+                return true
+            }
+            app.launch()
+            allowLocation()
+            func shows(_ text: String) -> Bool { app.staticTexts[text].exists }
+            func size() -> CGSize { app.windows.firstMatch.frame.size }
+            XCTAssertTrue(wait(10) { shows("KM/H") || shows("MPH") }, "\(mode): no unit")
+            if shows("MPH") { app.tap() }
+            drive(24.17)
+            XCTAssertTrue(wait(15) { shows("87") }, "\(mode) 87: \(texts(app))")
+            if mode == "paper" {
+                print("DUO \(mode) closed \(size())")
+                print("POSE open \(Date().timeIntervalSince1970)")   // for the video
+                try pose("open")
+                XCTAssertTrue(wait(15) { size().width > 900 }, "opened: the app stays \(size())")
+                _ = wait(2) { false }
+                print("DUO \(mode) open \(size())")
+                XCTAssertTrue(shows("87"), "opened: \(texts(app))")
+                shot(app, "duo-opened")
+                shots[wide(app, "87-duo-opened"), default: [:]][mode] = XCUIScreen.main.screenshot()
+                print("POSE closed \(Date().timeIntervalSince1970)")
+                try pose("closed")
+                XCTAssertTrue(wait(15) { size().width < 500 }, "closed: the app stays \(size())")
+                _ = wait(2) { false }
+                print("DUO \(mode) closed again \(size())")
+                XCTAssertTrue(shows("87"), "closed again: \(texts(app))")
+                shot(app, "duo-closed-again")
+                print("POSE open \(Date().timeIntervalSince1970)")
+                try pose("open")
+                XCTAssertTrue(wait(15) { size().width > 900 }, "opened again: the app stays \(size())")
+            } else {
+                _ = wait(2) { false }
+                shots[wide(app, "87-duo-opened"), default: [:]][mode] = XCUIScreen.main.screenshot()
+            }
+            driving = nil
+            app.terminate()
+        }
+        for (name, pair) in shots.sorted(by: { $0.key < $1.key }) {
+            guard let paper = pair["paper"], let html = pair["html"] else { XCTFail("\(name): missing a screenshot"); continue }
+            compare(name, paper, html)
+        }
+    }
+
+    static let duoDir = "/tmp/duo-host"
+    private var poseRequests = 0
+
+    /// Asks duo-host.sh for a pose and waits until it has clicked.
+    private func pose(_ name: String) throws {
+        poseRequests += 1
+        let request = "\(poseRequests) \(name)\n"
+        try request.write(toFile: Self.duoDir + "/request", atomically: true, encoding: .utf8)
+        let acked = wait(20) {
+            (try? String(contentsOfFile: Self.duoDir + "/ack", encoding: .utf8))?
+                .trimmingCharacters(in: .whitespacesAndNewlines) == "\(poseRequests)"
+        }
+        XCTAssertTrue(acked, "duo-host.sh never pressed \(name)")
+    }
+
     /// The launch screen against the waiting state it copies, portrait and landscape: `-launch-screen` shows
     /// LaunchScreen.storyboard as the app's screen. It has no unit (it can't know km/h from mph), so only the unit row's
     /// right end, where "FINDING GPS" sits, is held to the waiting state's.
@@ -145,7 +217,7 @@ final class SpeedometerUITests: XCTestCase {
                 _ = wait(3) { false }   // the home indicator fades, any size change finishes
             }
             ready()
-            shots["waiting", default: [:]][mode] = XCUIScreen.main.screenshot()
+            shots[wide(app, "waiting"), default: [:]][mode] = XCUIScreen.main.screenshot()
             XCUIDevice.shared.orientation = .landscapeLeft
             ready()
             if turned(app) { shots["waiting-landscape", default: [:]][mode] = XCUIScreen.main.screenshot() }
@@ -195,6 +267,13 @@ final class SpeedometerUITests: XCTestCase {
                           && abs(x.maxY - y.maxY) <= px, "\(name): \(part) at \(x) natively, \(y) in the \(against)")
         }
         XCTAssertLessThan(share, 0.003, "\(name): \(share * 100)% of pixels differ")
+    }
+
+    /// The shot's name, marked landscape when the app is already wider than tall (the open iPhone Duo, whose inner
+    /// display is landscape-native: its screenshots come out sideways, as a turned phone's do).
+    private func wide(_ app: XCUIApplication, _ name: String) -> String {
+        let frame = app.windows.firstMatch.frame
+        return frame.width > frame.height && !name.contains("landscape") ? name + "-landscape" : name
     }
 
     /// Whether the app is now wider than tall. XCUIDevice's orientation does nothing on the iPhone Duo simulator,

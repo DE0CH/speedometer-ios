@@ -33,16 +33,25 @@ COMMON=(-project Speedometer.xcodeproj -scheme Speedometer -configuration Releas
   -derivedDataPath DerivedData ONLY_ACTIVE_ARCH=YES ARCHS=arm64 CODE_SIGN_IDENTITY=- CODE_SIGNING_REQUIRED=NO)
 xcodebuild build-for-testing "${COMMON[@]}" > "$RUNNER_TEMP/build.log" 2>&1 || true
 grep -E "error:|\*\* TEST BUILD" "$RUNNER_TEMP/build.log" | head -20 || true
+# The iPhone Duo's poses ($DUO_HOST=1): duo-host.sh opens Device Hub and presses its pose buttons when testDuoOpens
+# asks; the Mac's screen is recorded too, where Device Hub draws the device folding with the app on it.
+if [ "${DUO_HOST:-}" = 1 ]; then
+  ./duo-host.sh start > "$RUNNER_TEMP/duo-host.log" 2>&1 & DUOHOST=$!
+  until grep -q serving "$RUNNER_TEMP/duo-host.log" 2>/dev/null; do sleep 1; done
+  screencapture -v -V 900 -x "$RUNNER_TEMP/screens/devicehub.mov" > /dev/null 2>&1 & MACREC=$!
+fi
 # A video of the whole run: the rotations, frame by frame (the test logs "ROTATE <mode> <epoch>").
 python3 -c "import time; print(time.time())" > "$RUNNER_TEMP/screens/video-start.txt"
 xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$RUNNER_TEMP/screens/replica.mp4" 2>/dev/null & RECORDER=$!
 xcodebuild test-without-building "${COMMON[@]}" "${ONLY[@]}" -resultBundlePath "$RUNNER_TEMP/ui.xcresult" \
   -test-timeouts-enabled YES -maximum-test-execution-time-allowance 600 > "$RUNNER_TEMP/test.log" 2>&1 || true
 kill $WATCHDOG 2>/dev/null || true
+[ -z "${MACREC:-}" ] || { kill -INT $MACREC 2>/dev/null; wait $MACREC 2>/dev/null || true; }
+[ -z "${DUOHOST:-}" ] || { kill $DUOHOST 2>/dev/null || true; cat "$RUNNER_TEMP/duo-host.log"; }
 kill -INT $RECORDER 2>/dev/null || true; wait $RECORDER 2>/dev/null || true
 tail -25 "$RUNNER_TEMP/test.log"
 grep -E "error:|\*\* TEST|Test Case .*(passed|failed)|XCTAssert" "$RUNNER_TEMP/test.log" | head -40 || true
-grep -E "COMPARE |ROTATE " "$RUNNER_TEMP/test.log" || true   # native vs the HTML, per state
+grep -E "COMPARE |ROTATE |POSE |DUO " "$RUNNER_TEMP/test.log" || true   # native vs the HTML, per state
 xcrun xcresulttool export attachments --path "$RUNNER_TEMP/ui.xcresult" --output-path "$RUNNER_TEMP/att" >/dev/null 2>&1 || true
 python3 - "$RUNNER_TEMP/att" "$RUNNER_TEMP/screens" <<'PY' || true
 import json, os, shutil, sys

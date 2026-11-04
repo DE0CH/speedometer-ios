@@ -106,3 +106,34 @@ jobs:
             ${{ runner.temp }}/screens/*.png
             ${{ runner.temp }}/test.log
           if-no-files-found: ignore
+  # The iPhone Duo opened and closed under the running app (Device Hub's pose buttons, ios/duo-host.sh), then the launch
+  # screen and the HTML comparisons in the open pose (951 x 669 pt).
+  duo:
+    if: ${{ !inputs.runner }}
+    runs-on: xcode-27
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Xcode, xcodegen
+        run: ./xcode.sh
+      - name: Replica on the iPhone Duo, closed and open
+        timeout-minutes: 30
+        env:
+          DEVICE: iPhone Duo
+          APPEARANCE: light
+          DUO_HOST: "1"
+          TESTS: testDuoOpens testLaunchScreenMatchesWaiting testMatchesReference
+        run: ./replica.sh
+      - name: Keep the screenshots, videos and log
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: duo-open
+          path: |
+            ${{ runner.temp }}/screens/*.png
+            ${{ runner.temp }}/screens/*.mov
+            ${{ runner.temp }}/screens/replica.mp4
+            ${{ runner.temp }}/test.log
+            ${{ runner.temp }}/duo-host.log
+          if-no-files-found: ignore
