@@ -15,8 +15,7 @@ on:
       appearance: { type: string, default: light }
       device: { type: string, default: iPhone 17 }
       runner: { type: string, default: xcode-27 }   # the store screenshot's iPhone 17 Pro Max is on macos-26 only
-  push:
-    branches: [main]
+  push:  # every branch (the gate merges a branch when this is green); main alone uploads
     paths: ["ios/**", "!ios/fastlane/**", ".github/workflows/ios.yml"]
 permissions: { contents: read }
 defaults:
@@ -28,7 +27,7 @@ jobs:
     # GitHub's xcode-27 image (a preview): Xcode 27.1, the first SDK the iPhone Duo gives its whole displays to (an
     # app built with the iOS 26 SDK sits in a smaller window on it).
     runs-on: ${{ inputs.runner || 'xcode-27' }}
-    concurrency: { group: "ios-${{ inputs.device || 'iPhone 17' }}-${{ inputs.appearance || 'light' }}", cancel-in-progress: false }
+    concurrency: { group: "ios-${{ github.ref }}-${{ inputs.device || 'iPhone 17' }}-${{ inputs.appearance || 'light' }}", cancel-in-progress: false }
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
@@ -55,7 +54,7 @@ jobs:
             ${{ runner.temp }}/test.log
           if-no-files-found: ignore
       - name: Archive (unsigned)
-        if: inputs.upload || (github.event_name == 'push' && github.workflow == 'ios')
+        if: inputs.upload || (github.event_name == 'push' && github.workflow == 'ios' && github.ref == 'refs/heads/main')
         run: |
           xcodebuild archive -project Speedometer.xcodeproj -scheme Speedometer -configuration Release -destination 'generic/platform=iOS' \
             -derivedDataPath DerivedData -archivePath "$RUNNER_TEMP/app.xcarchive" \
@@ -63,7 +62,7 @@ jobs:
           grep -E "error:|\*\* ARCHIVE" "$RUNNER_TEMP/archive.log" | head -40 || true
           grep -q "ARCHIVE SUCCEEDED" "$RUNNER_TEMP/archive.log"
       - name: Export, cloud-sign and upload to TestFlight
-        if: inputs.upload || (github.event_name == 'push' && github.workflow == 'ios')
+        if: inputs.upload || (github.event_name == 'push' && github.workflow == 'ios' && github.ref == 'refs/heads/main')
         env:
           ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
           ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
